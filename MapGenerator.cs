@@ -14,11 +14,6 @@ public class MapGenerator : MonoBehaviour
     //spawndistance must greater than spawnnumber
     private int spawnDistance = 300;
 
-    //spawnnumber must smaller than spawndistance
-    private int startSpawnNumber = 10;
-
-    private float distance;
-
     //variables for backgrounds
     [Header("Background section")]
     public Transform startBackground1;
@@ -41,17 +36,36 @@ public class MapGenerator : MonoBehaviour
 
     //variables for grounds
     [Header("Ground section")]
+    public int groundTopLimit;
+
+    private List<Transform> Ground;
+
+    private List<Transform> GroundTop;
+
     public Transform startGround1;
 
     public List<Transform> Ground1;
 
-    public int groundTopLimit;
-
     public List<Transform> Ground1Top;
+
+    public List<Transform> Ground1Cap;
 
     private Vector3 endPosition4;
 
     private Vector3 addPosition1;
+
+    public List<Transform> Ground2;
+
+    public List<Transform> Ground2Top;
+
+    public List<Transform> Ground2Cap;
+
+    private Vector3 endPosition6;
+
+    private Vector3 addPosition3;
+
+    //the ground index to choose
+    private int index;
 
     //variables for undergrounds
     [Header("Underground section")]
@@ -69,12 +83,6 @@ public class MapGenerator : MonoBehaviour
 
     public void Start()
     {
-        // Debug information
-        if (startSpawnNumber >= spawnDistance)
-        {
-            Debug
-                .Log("error, 'startSpawnNumber' must smaller than spawnDistance");
-        }
         if (groundTopLimit < 1)
         {
             Debug.Log("error, 'groundTopLimit' must greater than 1");
@@ -88,12 +96,11 @@ public class MapGenerator : MonoBehaviour
     public void Update()
     {
         // Assign distance values
-        distance = Vector3.Distance(player.position, endPosition4);
         generateBG1();
         generateBG2();
         generateBG3();
-        generateG1();
-        generateUG1();
+        generateG();
+        generateUG();
     }
 
     public void Awake()
@@ -110,16 +117,6 @@ public class MapGenerator : MonoBehaviour
         // find endpositions and addpositions for undergrounds
         endPosition5 = startUnderground1.Find("EndPosition").position;
         addPosition2 = startUnderground1.Find("AddPosition").position;
-
-        for (int i = 0; i < startSpawnNumber; i++)
-        {
-            generateBG1();
-            generateBG2();
-            generateBG3();
-            generateG1();
-            generateUG1();
-        }
-        DontDestroyOnLoad(transform.gameObject);
     }
 
     // spawn method for background1
@@ -161,14 +158,25 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    // spawn method for ground1 and ground1Top
-    public void generateG1()
+    public void generateG()
     {
+        index = Random.Range(0, 2);
+        switch (index)
+        {
+            case 0:
+                Ground = Ground1;
+                GroundTop = Ground1Top;
+                break;
+            case 1:
+                Ground = Ground2;
+                GroundTop = Ground2Top;
+                break;
+        }
+
         if (Vector3.Distance(player.position, endPosition4) < spawnDistance)
         {
             // generate the base ground
-            Transform chosenLevelPart1 =
-                Ground1[Random.Range(0, Ground1.Count)];
+            Transform chosenLevelPart1 = Ground[Random.Range(0, Ground.Count)];
             Transform lastLevelPartTransform1 =
                 Instantiate(chosenLevelPart1,
                 endPosition4,
@@ -180,7 +188,7 @@ public class MapGenerator : MonoBehaviour
             for (int j = 0; j < Random.Range(0, groundTopLimit); j++)
             {
                 Transform chosenLevelPart2 =
-                    Ground1Top[Random.Range(0, Ground1Top.Count)];
+                    GroundTop[Random.Range(0, GroundTop.Count)];
                 Transform lastLevelPartTransform2 =
                     Instantiate(chosenLevelPart2,
                     addPosition1,
@@ -192,7 +200,7 @@ public class MapGenerator : MonoBehaviour
     }
 
     // spawn method for underground1
-    public void generateUG1()
+    public void generateUG()
     {
         if (Vector3.Distance(player.position, endPosition5) < spawnDistance)
         {
