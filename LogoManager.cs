@@ -25,8 +25,10 @@ public class LogoManager : MonoBehaviour
     //the waiting time in seconds for fade out
     public float WaitingTimeOut;
 
-    //the audio clip
-    public AudioClip logoSound;
+    //the index of next scene
+    public int NextSceneIndex;
+
+    public bool hasAudio;
 
     IEnumerator Start()
     {
@@ -42,22 +44,17 @@ public class LogoManager : MonoBehaviour
         yield return new WaitForSeconds(WaitingTimeOut);
 
         //Calling the LoadScene method
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        SceneManager.LoadScene (NextSceneIndex);
 
         //playing sound effect
-        AudioSource audio = GetComponent<AudioSource>();
-        audio.Play();
-        yield return new WaitForSeconds(audio.clip.length);
-        audio.clip = logoSound;
-        audio.Play();
+        if (hasAudio)
+        {
+            AudioSource audio = GetComponent<AudioSource>();
+            audio.Play();
+        }
     }
 
     void Update()
-    {
-        BackgroundAllign();
-    }
-
-    void BackgroundAllign()
     {
         // initialize the background position
         background.transform.position = new Vector3(0, 0, 0);

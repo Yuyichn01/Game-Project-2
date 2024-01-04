@@ -17,43 +17,44 @@ public class MenuManager : MonoBehaviour
 
     public Button exitButton;
 
+    // the menu sprite
+    public Image menuSprite;
+
     // the background image
     public Image background;
 
+    public GameObject sceneTransition;
+
+    [SerializeField]
+    Animator transitionAnimator;
+
     void Start()
     {
+        sceneTransition.SetActive(false);
+
         // when button is clicked, do action
         Button btn1 = startButton.GetComponent<Button>();
-        btn1.onClick.AddListener (startGame);
+        btn1.onClick.AddListener(() => sceneTransition.SetActive(true));
+        btn1
+            .onClick
+            .AddListener(() =>
+                StartCoroutine(LoadLevel(SceneTransitionIndex1)));
 
         Button btn2 = settingButton.GetComponent<Button>();
-        btn2.onClick.AddListener (goToSetting);
+        btn2.onClick.AddListener(() => sceneTransition.SetActive(true));
+        btn2
+            .onClick
+            .AddListener(() =>
+                StartCoroutine(LoadLevel(SceneTransitionIndex2)));
 
         Button btn3 = exitButton.GetComponent<Button>();
-        btn3.onClick.AddListener (exitGame);
+        btn3.onClick.AddListener(() => Application.Quit());
     }
 
-    void Update()
+    IEnumerator LoadLevel(int num)
     {
-        // always make sure the background is larger than canvas
-        RectTransform RTCanvas = GetComponent<RectTransform>();
-        background.rectTransform.sizeDelta =
-            new Vector2(RTCanvas.rect.width * 2, RTCanvas.rect.height * 2);
-    }
-
-    void startGame()
-    {
-        Debug.Log("the game is started");
-        SceneManager.LoadScene (SceneTransitionIndex1);
-    }
-
-    void goToSetting()
-    {
-        SceneManager.LoadScene (SceneTransitionIndex2);
-    }
-
-    void exitGame()
-    {
-        Application.Quit();
+        transitionAnimator.SetTrigger("start");
+        yield return new WaitForSeconds(1);
+        SceneManager.LoadScene (num);
     }
 }

@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+attach this to enemy
+*/
 public class EnemyAI : MonoBehaviour
 {
     // the player gameobject to assign
