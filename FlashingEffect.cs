@@ -9,39 +9,54 @@ public class FlashingEffect : MonoBehaviour
     //image to fade in and out
     public Image image;
 
-    public bool Reverse;
+    public bool Reverse = false;
+
+    public bool PlayOnce = false;
 
     public float FadingTime;
 
     public float FadingPeriod;
 
-    private bool loop = true;
+    public bool loop = true;
 
     // Start is called before the first frame update
     IEnumerator Start()
     {
-        while (loop == true)
+        if (PlayOnce == true)
         {
-            if (Reverse == true)
+            image.canvasRenderer.SetAlpha(1.0f);
+            yield return new WaitForSeconds(FadingPeriod);
+            FadeOut();
+            yield return new WaitForSeconds(FadingPeriod);
+            image.canvasRenderer.SetAlpha(0.0f);
+            this.gameObject.SetActive(false);
+        }
+        else
+        {
+            do
             {
-                image.canvasRenderer.SetAlpha(0.0f);
-                yield return new WaitForSeconds(FadingPeriod);
-                FadeIn();
-                yield return new WaitForSeconds(FadingPeriod);
-                FadeOut();
-                yield return new WaitForSeconds(FadingPeriod);
-                image.canvasRenderer.SetAlpha(1.0f);
+                if (Reverse == true)
+                {
+                    image.canvasRenderer.SetAlpha(0.0f);
+                    yield return new WaitForSeconds(FadingPeriod);
+                    FadeIn();
+                    yield return new WaitForSeconds(FadingPeriod);
+                    FadeOut();
+                    yield return new WaitForSeconds(FadingPeriod);
+                    image.canvasRenderer.SetAlpha(1.0f);
+                }
+                else
+                {
+                    image.canvasRenderer.SetAlpha(1.0f);
+                    yield return new WaitForSeconds(FadingPeriod);
+                    FadeOut();
+                    yield return new WaitForSeconds(FadingPeriod);
+                    FadeIn();
+                    yield return new WaitForSeconds(FadingPeriod);
+                    image.canvasRenderer.SetAlpha(0.0f);
+                }
             }
-            else
-            {
-                image.canvasRenderer.SetAlpha(1.0f);
-                yield return new WaitForSeconds(FadingPeriod);
-                FadeOut();
-                yield return new WaitForSeconds(FadingPeriod);
-                FadeIn();
-                yield return new WaitForSeconds(FadingPeriod);
-                image.canvasRenderer.SetAlpha(0.0f);
-            }
+            while (loop == true);
         }
     }
 

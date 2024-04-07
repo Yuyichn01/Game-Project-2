@@ -20,7 +20,7 @@ public class VehicleController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        movement = Input.GetAxis("Horizontal");
+        movement = Input.GetAxis("Horizontal") / 2;
     }
 
     private void FixedUpdate()

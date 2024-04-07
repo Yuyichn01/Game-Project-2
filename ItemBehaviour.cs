@@ -28,7 +28,11 @@ public class ItemBehaviour : MonoBehaviour
         Heart,
         Entry,
         Portal,
-        Storage
+        Storage,
+        Cooker,
+        Door,
+        Information,
+        Bed
     }
 
     [Header("Item section")]
@@ -62,11 +66,32 @@ public class ItemBehaviour : MonoBehaviour
     public Transform NextPortalPosition;
 
     [Header("Storage section")]
-    public int StorageSpace = 1;
+    public int StorageSpace = 0;
 
     public List<Item> Items = new List<Item>();
 
     public bool isFull = false;
+
+    [Header("Cooker section")]
+    public List<Item> dish = new List<Item>();
+
+    public List<Item> food = new List<Item>();
+
+    private int NumberOfInstantNoodle = 0;
+
+    private int NumberOfRice = 0;
+
+    private int NumberOfBread = 0;
+
+    private int NumberOfLunchMeat = 0;
+
+    private int NumberOfSausage = 0;
+
+    private int NumberOfWater = 0;
+
+    private int NumberOfDishes = 0;
+
+    private int NumebrOfFruitJam = 0;
 
     public void Start()
     {
@@ -87,7 +112,159 @@ public class ItemBehaviour : MonoBehaviour
 
     public void Remove(Item item)
     {
+        //remove the item in the storage
         Items.Remove (item);
+    }
+
+    public void AddToFoodList(Item item)
+    {
+        Item tmpItem;
+        tmpItem = item;
+        food.Add (tmpItem);
+    }
+
+    public void PrepareToCook(Item item)
+    {
+        //add the food item in the cooker
+        Item tmpItem;
+        tmpItem = item;
+        food.Add (tmpItem);
+    }
+
+    public void CancelCook(Item item)
+    {
+        //remove the food item in the cooker
+        food.Remove (item);
+    }
+
+    public void StartToCook()
+    {
+        //reset the number of dish and food to 0
+        NumberOfDishes = 0;
+
+        NumberOfInstantNoodle = 0;
+
+        NumberOfRice = 0;
+
+        NumberOfBread = 0;
+
+        NumberOfLunchMeat = 0;
+
+        NumberOfSausage = 0;
+
+        NumberOfWater = 0;
+
+        NumberOfDishes = 0;
+
+        NumebrOfFruitJam = 0;
+
+        //calculate number of food element in the food list
+        for (int i = 0; i < food.Count; i++)
+        {
+            if (food[i].ItemName == "InstantNoodle")
+            {
+                NumberOfInstantNoodle += 1;
+            }
+            else if (food[i].ItemName == "Rice")
+            {
+                NumberOfRice += 1;
+            }
+            else if (food[i].ItemName == "Bread")
+            {
+                NumberOfBread += 1;
+            }
+            else if (food[i].ItemName == "LunchMeat")
+            {
+                NumberOfLunchMeat += 1;
+            }
+            else if (food[i].ItemName == "Sausage")
+            {
+                NumberOfSausage += 1;
+            }
+            else if (food[i].ItemName == "Water")
+            {
+                NumberOfWater += 1;
+            }
+            else if (food[i].ItemName == "FruitJam")
+            {
+                NumebrOfFruitJam += 1;
+            }
+            else
+            {
+                Debug.Log("The Item Name of food is not assigned");
+            }
+        }
+
+        //Instant noodle receipe
+        if (
+            NumberOfInstantNoodle != 0 &&
+            NumberOfRice == 0 &&
+            NumberOfBread == 0 &&
+            NumberOfWater != 0
+        )
+        {
+            if (NumberOfInstantNoodle == 1 && NumberOfWater == 1)
+            {
+                //remove all food items in the cooker
+                food.Clear();
+
+                //add fried instant noodle UI in cooker
+                AddToFoodList(dish[0]);
+
+                //spawn Fried instant noodle
+                Debug.Log("The fried noodle has been cooked");
+            }
+            else if (NumberOfInstantNoodle == 1 && NumberOfWater == 2)
+            {
+                //spawn instant noodle with soup
+                Debug.Log("The instant noodle with soup has been cooked");
+            }
+            else
+            {
+                //cannot cook the item
+                Debug.Log("The food cannot be cooked");
+            }
+        } //Rice receipe
+        else if (
+            NumberOfRice != 0 &&
+            NumberOfInstantNoodle == 0 &&
+            NumberOfBread == 0 &&
+            NumberOfWater != 0
+        )
+        {
+            NumberOfDishes = NumberOfRice;
+            switch (NumberOfRice)
+            {
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    break;
+            }
+        } //Bread receipe
+        else if (
+            NumberOfBread != 0 &&
+            NumberOfRice == 0 &&
+            NumberOfInstantNoodle == 0
+        )
+        {
+            NumberOfDishes = NumberOfBread;
+            switch (NumberOfBread)
+            {
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    break;
+            }
+        }
+        else
+        {
+            //cannot cook the item
+            Debug.Log("The food cannot be cooked");
+        }
     }
 
     // the transform of current item
@@ -96,9 +273,12 @@ public class ItemBehaviour : MonoBehaviour
         //update the Current Character
         CurrentCharacter = UIManager.GetComponent<UIManager>().CurrentCharacter;
 
-        // if the item is pickable do these action
+        // if the item is pickable, do these action
         if (pickable == true)
         {
+            //Play interact animation
+            CurrentCharacter.GetComponent<Animator>().SetTrigger("Interact");
+
             // Add the object to the picked up Items list
             switch (type)
             {
@@ -128,10 +308,19 @@ public class ItemBehaviour : MonoBehaviour
             switch (type)
             {
                 case ItemType.Entry:
+                    //Play interact animation
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
                     Debug.Log("this is an entry");
                     SceneManager.LoadScene (sceneIndex);
                     break;
                 case ItemType.Portal:
+                    //Play interact animation
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+
                     // play transition background
                     StartCoroutine(UIManager
                         .GetComponent<UIManager>()
@@ -156,6 +345,11 @@ public class ItemBehaviour : MonoBehaviour
                     Debug.Log("this is a portal");
                     break;
                 case ItemType.Storage:
+                    //Play interact animation
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+
                     //get,list and display items in this Object
                     InventoryManager
                         .GetComponent<InventoryManager>()
@@ -163,8 +357,53 @@ public class ItemBehaviour : MonoBehaviour
                     InventoryManager
                         .GetComponent<InventoryManager>()
                         .ListStorageItems();
+
+                    //display storage UI pannel
                     UIManager.GetComponent<UIManager>().displayStoragePannel();
                     Debug.Log("this is Storage");
+                    break;
+                case ItemType.Cooker:
+                    //Play interact animation
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+
+                    //get,list and display food items in this Object
+                    InventoryManager
+                        .GetComponent<InventoryManager>()
+                        .FoodItems = food;
+                    InventoryManager
+                        .GetComponent<InventoryManager>()
+                        .ListFoodItems();
+
+                    //display storage UI pannel
+                    UIManager.GetComponent<UIManager>().displayCookerPannel();
+                    Debug.Log("this is a cooker");
+
+                    break;
+                case ItemType.Information:
+                    //Play interact animation
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+
+                    //display dialog window
+                    UIManager.GetComponent<UIManager>().ResetDialogButtons();
+                    DialogManager
+                        .GetComponent<DialogManager>()
+                        .StartDialog(ItemData.dialog);
+
+                    Debug.Log("this is a piece of information");
+                    break;
+                case ItemType.Bed:
+                    // play transition background
+                    StartCoroutine(UIManager
+                        .GetComponent<UIManager>()
+                        .PlaySleepAnimation());
+
+                    //add the date number in UI manager
+                    UIManager.GetComponent<UIManager>().addOneDay();
+                    Debug.Log("this is a bed");
                     break;
             }
         }

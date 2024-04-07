@@ -22,6 +22,8 @@ public class ItemUI : MonoBehaviour
 
     private GameObject UIManager;
 
+    private GameObject currentCharacter;
+
     public void Start()
     {
         //initialize managers
@@ -36,44 +38,77 @@ public class ItemUI : MonoBehaviour
         //set the current item data in Inventory to this item data
         InventoryManager.GetComponent<InventoryManager>().CurrentItem =
             itemData;
+
+        //set utilize button visibility
+        UIManager.GetComponent<UIManager>().ResetDialogButtons();
+        UIManager
+            .GetComponent<UIManager>()
+            .UtilizeButton
+            .gameObject
+            .SetActive(true);
+
+        //set the current character
+        currentCharacter = UIManager.GetComponent<UIManager>().CurrentCharacter;
+
         switch (type)
         {
             case ItemType.InventoryItem:
-                //set button visibility
-                UIManager.GetComponent<UIManager>().ResetDialogButtons();
-                UIManager
-                    .GetComponent<UIManager>()
-                    .UtilizeButton
-                    .gameObject
-                    .SetActive(true);
-                UIManager
-                    .GetComponent<UIManager>()
-                    .DiscardButton
-                    .gameObject
-                    .SetActive(true);
+                if (
+                    currentCharacter
+                        .GetComponent<PlayerController>()
+                        .itemCollider !=
+                    null
+                )
+                {
+                    GameObject collidedItem =
+                        currentCharacter.GetComponent<PlayerController>().item;
 
+                    //if the player is colliding with storage objects, display place button
+                    if (
+                        collidedItem.GetComponent<ItemBehaviour>().type ==
+                        ItemBehaviour.ItemType.Storage
+                    )
+                    {
+                        UIManager
+                            .GetComponent<UIManager>()
+                            .PlaceButton
+                            .gameObject
+                            .SetActive(true);
+                    } //if the player is colliding with cooker object and the object is of type "food", display cook button
+                    else if (
+                        collidedItem.GetComponent<ItemBehaviour>().type ==
+                        ItemBehaviour.ItemType.Cooker &&
+                        itemData.ItemType == "food"
+                    )
+                    {
+                        UIManager
+                            .GetComponent<UIManager>()
+                            .ReadyToCookButton
+                            .gameObject
+                            .SetActive(true);
+                    }
+                }
+                else
+                //else display discard button
+                {
+                    UIManager
+                        .GetComponent<UIManager>()
+                        .DiscardButton
+                        .gameObject
+                        .SetActive(true);
+                }
+
+                //else, display discard button
                 Debug.Log("This is InventoryItem");
                 break;
             case ItemType.StorageItem:
-                //set button visibility
-                UIManager.GetComponent<UIManager>().ResetDialogButtons();
-                UIManager
-                    .GetComponent<UIManager>()
-                    .UtilizeButton
-                    .gameObject
-                    .SetActive(true);
                 UIManager
                     .GetComponent<UIManager>()
                     .StoreButton
                     .gameObject
                     .SetActive(true);
-                UIManager
-                    .GetComponent<UIManager>()
-                    .DiscardButton
-                    .gameObject
-                    .SetActive(false);
 
-                Debug.Log("this is StorageItem");
+                Debug.Log("this is Storage Item");
                 break;
         }
 

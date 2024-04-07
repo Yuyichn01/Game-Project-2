@@ -5,13 +5,25 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Item", menuName = "Item/Create New Item")]
 public class Item : ScriptableObject
 {
-    public int id;
+    //the Item type can be "food" "tool".....
+    public string ItemType;
 
-    public string itemName;
+    //the Item name
+    public string ItemName = " ";
 
-    public int value;
+    //the bonus point ranges from 0 to 100
+    public int HealthBonus = 0;
 
+    public int StaminaBonus = 0;
+
+    public int StarvationBonus = 0;
+
+    //the sprite to be displayed on Item UI
     public Sprite icon;
 
+    //the dialog to be dislayed on dialog UI
     public Dialog dialog;
+
+    //the object instance for player to pick or interact
+    public GameObject objectInstance;
 }

@@ -45,6 +45,13 @@ public class DialogManager : MonoBehaviour
 
         UpdatePortrait();
 
+        //freeze character movement
+        UIManager
+            .GetComponent<UIManager>()
+            .CurrentCharacter
+            .GetComponent<PlayerController>()
+            .FreezeCharacter();
+
         DialogAnimator.SetBool("IsOpen", true);
 
         //start to display character sprite animator
@@ -70,6 +77,23 @@ public class DialogManager : MonoBehaviour
         StartCoroutine(TypeSentence(sentence));
     }
 
+    public void EndDialog()
+    {
+        DialogAnimator.SetBool("IsOpen", false);
+        for (int i = 0; i < DialogPortrait.Length; i++)
+        {
+            DialogPortrait[i].GetComponent<Animator>().SetBool("IsOpen", false);
+        }
+
+        //unfreeze character movement
+        UIManager
+            .GetComponent<UIManager>()
+            .CurrentCharacter
+            .GetComponent<PlayerController>()
+            .UnfreezeCharacter();
+        Debug.Log("End of conversation");
+    }
+
     IEnumerator TypeSentence(string sentence)
     {
         dialogText.text = " ";
@@ -78,16 +102,6 @@ public class DialogManager : MonoBehaviour
             dialogText.text += letter;
             yield return new WaitForSeconds(TypingInterval);
         }
-    }
-
-    public void EndDialog()
-    {
-        DialogAnimator.SetBool("IsOpen", false);
-        for (int i = 0; i < DialogPortrait.Length; i++)
-        {
-            DialogPortrait[i].GetComponent<Animator>().SetBool("IsOpen", false);
-        }
-        Debug.Log("End of conversation");
     }
 
     public void ResetDialogPortrait()
@@ -100,27 +114,13 @@ public class DialogManager : MonoBehaviour
 
     public void UpdatePortrait()
     {
-        if (UIManager.GetComponent<UIManager>().isSingle == true)
-        {
-            DialogPortrait[0].GetComponent<Image>().sprite =
-                UIManager
-                    .GetComponent<UIManager>()
-                    .CurrentCharacter
-                    .GetComponent<PlayerValue>()
-                    .CharacterDialogSprite;
-        }
-        else
-        {
-            for (int i = 0; i < DialogPortrait.Length; i++)
-            {
-                DialogPortrait[i].GetComponent<Image>().sprite =
-                    UIManager
-                        .GetComponent<UIManager>()
-                        .Characters[i]
-                        .GetComponent<PlayerValue>()
-                        .CharacterDialogSprite;
-            }
-        }
+        DialogPortrait[0].GetComponent<Image>().sprite =
+            UIManager
+                .GetComponent<UIManager>()
+                .CurrentCharacter
+                .GetComponent<PlayerValue>()
+                .CharacterDialogSprite;
+
         for (int i = 0; i < DialogPortrait.Length; i++)
         {
             DialogPortrait[i].GetComponent<Animator>().SetBool("IsOpen", true);

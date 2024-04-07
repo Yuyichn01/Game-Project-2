@@ -20,9 +20,12 @@ public class InventoryManager : MonoBehaviour
     [Header("Storage item section")]
     public Transform StorageContent;
 
-    public GameObject StorageItem;
-
     public List<Item> StorageItems = new List<Item>();
+
+    [Header("Food item section")]
+    public Transform FoodContent;
+
+    public List<Item> FoodItems = new List<Item>();
 
     [Header("Manager section")]
     private GameObject UIManager;
@@ -69,6 +72,22 @@ public class InventoryManager : MonoBehaviour
             Image image = obj.GetComponent<Image>();
             image.sprite = storageItem.icon;
             obj.GetComponent<ItemUI>().itemData = storageItem;
+            obj.GetComponent<ItemUI>().type = ItemUI.ItemType.StorageItem;
+        }
+    }
+
+    public void ListFoodItems()
+    {
+        foreach (Transform foodItem in FoodContent)
+        {
+            Destroy(foodItem.gameObject);
+        }
+        foreach (var foodItem in FoodItems)
+        {
+            GameObject obj = Instantiate(InventoryItem, FoodContent);
+            Image image = obj.GetComponent<Image>();
+            image.sprite = foodItem.icon;
+            obj.GetComponent<ItemUI>().itemData = foodItem;
             obj.GetComponent<ItemUI>().type = ItemUI.ItemType.StorageItem;
         }
     }

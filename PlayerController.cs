@@ -48,8 +48,9 @@ public class PlayerController : MonoBehaviour
     // the detected item
     public GameObject item;
 
+    [Header("State Section")]
     // the collider of the detected item
-    private Collider2D itemCollider;
+    public Collider2D itemCollider;
 
     // rigidbody instance
     private Rigidbody2D rb;
@@ -63,15 +64,17 @@ public class PlayerController : MonoBehaviour
 
     public Animator animator;
 
-    public void Awake()
+    [Header("Manager section")]
+    private GameObject UIManager;
+
+    public void Start()
     {
         // assign the instance when game starts
         rb = GetComponent<Rigidbody2D>();
         playerAnimator = GetComponent<Animator>();
-    }
+        UIManager = GameObject.FindWithTag("UIManager");
 
-    public void Start()
-    {
+        //ignore collision on other characters
         Physics2D.IgnoreLayerCollision (PlayerLayerIndex1, PlayerLayerIndex2);
     }
 
@@ -98,7 +101,7 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        //create a speed variable in animator
+        //Assign speed variable in animator
         playerAnimator.SetFloat("speed", speed);
         controller.Move(horizontal * Time.fixedDeltaTime, false, isJumping);
         isJumping = false;
@@ -131,7 +134,6 @@ public class PlayerController : MonoBehaviour
             //if key E is pressed
             if (Input.GetKeyDown(KeyCode.E))
             {
-                animator.SetTrigger("Interact");
                 item.GetComponent<ItemBehaviour>().itemBehaviour();
             }
 
@@ -196,8 +198,10 @@ public class PlayerController : MonoBehaviour
                 }
         }
 
-        GameObject.FindWithTag("Player").transform.position =
-            closestDoorUp.transform.position;
+        //set the current character position to the door position
+        GameObject CurrentCharacter =
+            UIManager.GetComponent<UIManager>().CurrentCharacter;
+        CurrentCharacter.transform.position = closestDoorUp.transform.position;
 
         //debug information
         Debug.Log("Going Up");
@@ -250,7 +254,10 @@ public class PlayerController : MonoBehaviour
                 }
         }
 
-        GameObject.FindWithTag("Player").transform.position =
+        //set the current character position to the door position
+        GameObject CurrentCharacter =
+            UIManager.GetComponent<UIManager>().CurrentCharacter;
+        CurrentCharacter.transform.position =
             closestDoorDown.transform.position;
 
         //debug information
@@ -300,6 +307,7 @@ public class PlayerController : MonoBehaviour
         Rigidbody2D m_Rigidbody;
         m_Rigidbody = gameObject.GetComponent<Rigidbody2D>();
         m_Rigidbody.constraints = RigidbodyConstraints2D.FreezeAll;
+        this.gameObject.GetComponent<Animator>().SetBool("Can walk", false);
         Debug.Log("Character freezed");
     }
 
@@ -308,6 +316,7 @@ public class PlayerController : MonoBehaviour
         Rigidbody2D m_Rigidbody;
         m_Rigidbody = gameObject.GetComponent<Rigidbody2D>();
         m_Rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
+        this.gameObject.GetComponent<Animator>().SetBool("Can walk", true);
         Debug.Log("Character unfreezed");
     }
 }

@@ -12,6 +12,8 @@ public class CameraController : MonoBehaviour
 
     public float Smoothness = 0.0f;
 
+    public float YOffset = 10.0f;
+
     private void LateUpdate()
     {
         Vector3 delta = Vector3.zero;
@@ -42,6 +44,6 @@ public class CameraController : MonoBehaviour
             }
         }
 
-        transform.position += new Vector3(delta.x, deltaY, 0);
+        transform.position += new Vector3(delta.x, deltaY + YOffset, 0);
     }
 }
