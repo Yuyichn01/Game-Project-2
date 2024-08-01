@@ -4,6 +4,15 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script save the data to a file
+
+*/
 public class FileDataHandler
 {
     private string dataDirPath = " ";

@@ -2,6 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script defines the item values
+*/
 [CreateAssetMenu(fileName = "New Item", menuName = "Item/Create New Item")]
 public class Item : ScriptableObject
 {

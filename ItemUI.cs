@@ -2,6 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script respond to UI click
+
+*/
 public class ItemUI : MonoBehaviour
 {
     public enum ItemType

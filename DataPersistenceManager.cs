@@ -4,6 +4,15 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script can save the game data/status
+
+*/
 public class DataPersistenceManager : MonoBehaviour
 {
     [Header("File storage config")]

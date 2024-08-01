@@ -2,7 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// this script generates items randomly
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script generate items in certain locations
+*/
 public class ItemGenerator : MonoBehaviour
 {
     public List<GameObject> items;

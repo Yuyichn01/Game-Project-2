@@ -64,6 +64,36 @@ public class PlayerController : MonoBehaviour
 
     public Animator animator;
 
+    [Header("Character UI Section")]
+    public Sprite CharacterMiniSprite;
+
+    public Sprite CharacterDialogSprite;
+
+    [Header("Item Section")]
+    public List<Item> Items = new List<Item>();
+
+    [Header("Status Section")]
+    // set the player's health
+    public float health = 0;
+
+    public float Fatigue = 0;
+
+    public float Starvation = 0;
+
+    private float timer;
+
+    // set the player's hunger
+    public static int hunger = 0;
+
+    [Header("Combat section")]
+    public Transform attackPoint;
+
+    public float attackRange = 0.5f;
+
+    public LayerMask enemyLayers;
+
+    public int attackDamage = 40;
+
     [Header("Manager section")]
     private GameObject UIManager;
 
@@ -115,6 +145,27 @@ public class PlayerController : MonoBehaviour
     {
         Debug.Log("Attacking enemy");
         animator.SetTrigger("Attack");
+        Collider2D[] hitEnemies =
+            Physics2D
+                .OverlapCircleAll(attackPoint.position,
+                attackRange,
+                enemyLayers);
+
+        foreach (Collider2D enemy in hitEnemies)
+        {
+            Debug.Log("hit" + enemy.name);
+            enemy.GetComponent<EnemyAI>().TakeDamage(attackDamage);
+        }
+    }
+
+    //visually display the attacking circle
+    void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null)
+        {
+            return;
+        }
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
     }
 
     // manage the interaction of items
@@ -292,6 +343,18 @@ public class PlayerController : MonoBehaviour
         {
             flip();
         }
+    }
+
+    public void Add(Item item)
+    {
+        Item tmpItem;
+        tmpItem = item;
+        Items.Add (tmpItem);
+    }
+
+    public void Remove(Item item)
+    {
+        Items.Remove (item);
     }
 
     public void flip()

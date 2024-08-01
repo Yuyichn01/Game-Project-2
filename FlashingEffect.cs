@@ -4,6 +4,15 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/*
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
+The script that creates flashing effect of images such as logo
+
+*/
 public class FlashingEffect : MonoBehaviour
 {
     //image to fade in and out

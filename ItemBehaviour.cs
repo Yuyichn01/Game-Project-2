@@ -5,9 +5,14 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /*
-Script description:
+Author: Yi Yu
+
+Date:2024/4/27
+
+Description:
 This script defines object's behaviour when player interacts with it. Attach this script to the object that the player interacts with. 
 
+Implementation steps:
 Remeber to set all item tag and layer:
 *add "door" tag to door
 *add "ladder" tag to ladder
@@ -283,9 +288,11 @@ public class ItemBehaviour : MonoBehaviour
             switch (type)
             {
                 case ItemType.Food:
-                    CurrentCharacter.GetComponent<PlayerValue>().Add(ItemData);
+                    CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .Add(ItemData);
                     InventoryManager.GetComponent<InventoryManager>().Items =
-                        CurrentCharacter.GetComponent<PlayerValue>().Items;
+                        CurrentCharacter.GetComponent<PlayerController>().Items;
                     InventoryManager
                         .GetComponent<InventoryManager>()
                         .ListItems();
@@ -296,7 +303,7 @@ public class ItemBehaviour : MonoBehaviour
                     break;
                 case ItemType.Heart:
                     Debug.Log("this is a Heart");
-                    Player1.GetComponent<PlayerValue>().health += 1;
+                    Player1.GetComponent<PlayerController>().health += 1;
                     break;
             }
 
@@ -342,6 +349,22 @@ public class ItemBehaviour : MonoBehaviour
                         Player3.transform.position =
                             NextPortalPosition.position;
                     }
+
+                    //teleport camera
+                    UIManager
+                        .GetComponent<UIManager>()
+                        .MainCamera
+                        .transform
+                        .position =
+                        new Vector3(NextPortalPosition.position.x,
+                            NextPortalPosition.position.y,
+                            NextPortalPosition.position.z -
+                            UIManager
+                                .GetComponent<UIManager>()
+                                .MainCamera
+                                .GetComponent<CameraController>()
+                                .fixedZPosition);
+
                     Debug.Log("this is a portal");
                     break;
                 case ItemType.Storage:
@@ -397,9 +420,7 @@ public class ItemBehaviour : MonoBehaviour
                     break;
                 case ItemType.Bed:
                     // play transition background
-                    StartCoroutine(UIManager
-                        .GetComponent<UIManager>()
-                        .PlaySleepAnimation());
+                    UIManager.GetComponent<UIManager>().PlaySleepAnimation();
 
                     //add the date number in UI manager
                     UIManager.GetComponent<UIManager>().addOneDay();

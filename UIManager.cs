@@ -36,10 +36,14 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
     public Button StartToCookButton;
 
+    public CameraController Camera;
+
     private int switchCount = 1;
 
     [Header("Slider section")]
     public Slider HealthBar;
+
+    public Slider StarvationBar;
 
     [Header("State section")]
     public bool isSingle = false;
@@ -59,9 +63,13 @@ public class UIManager : MonoBehaviour, IDataPersistence
     public Camera MainCamera;
 
     [Header("Background section")]
-    public GameObject PortalBackground;
+    public float transitionInTime = 1.0f;
 
-    public float ScreenBlankTime = 0.8f;
+    public float transitionOutTime = 1.0f;
+
+    public float sleepTransitionTime = 1.0f;
+
+    public GameObject PortalBackground;
 
     private TextMeshProUGUI text;
 
@@ -107,9 +115,6 @@ public class UIManager : MonoBehaviour, IDataPersistence
         ReadyToCookButton.onClick.AddListener (TaskOnReadyToCookButton);
         StartToCookButton.onClick.AddListener (TaskOnStartToCookButton);
 
-        //Initialize the health bar value
-        HealthBar.value = Characters[0].GetComponent<PlayerValue>().health;
-
         //Initialize the day record information
         text = DayRecord.GetComponent<TextMeshProUGUI>();
         text.SetText("DAY" + DayIndex);
@@ -119,35 +124,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
         UIupdate();
     }
 
-    public void addOneDay()
-    {
-        DayIndex += 1;
-        text = DayRecord.GetComponent<TextMeshProUGUI>();
-        text.SetText("DAY" + DayIndex);
-    }
-
-    //Update the UI information when an event occurs
-    public void UIupdate()
-    {
-        //Update the current UI information
-        HealthBar.value = CurrentCharacter.GetComponent<PlayerValue>().health;
-
-        //Update the current camera position
-        MainCamera.GetComponent<CameraController>().lookAt =
-            CurrentCharacter.transform;
-
-        //Update the character controller script
-        for (int i = 0; i < Characters.Length; i++)
-        {
-            Characters[i].GetComponent<PlayerController>().enabled = false;
-            Characters[i].GetComponent<Animator>().SetFloat("speed", 0);
-        }
-        CurrentCharacter.GetComponent<PlayerController>().enabled = true;
-        MainCamera.GetComponent<CameraController>().lookAt =
-            CurrentCharacter.transform;
-    }
-
-    //saving methods
+    //Buttons section: where all the button control methods are written
     public void TaskOnClickSaveButton()
     {
         Debug.Log("Saving game data");
@@ -166,19 +143,17 @@ public class UIManager : MonoBehaviour, IDataPersistence
         DataPersistenceManager.instance.NewGame();
     }
 
-    //Button on tigger events
     public void TaskOnInventoryButton()
     {
         //Update Inventory items in real times
         InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerValue>().Items;
+            CurrentCharacter.GetComponent<PlayerController>().Items;
         InventoryManager.GetComponent<InventoryManager>().ListItems();
         if (InventoryOpened == true)
         {
             //close the inventory
             InventoryAnimator.SetBool("IsOpen", false);
             InventoryOpened = false;
-
             Debug.Log("The Inventory is closed");
         }
         else
@@ -206,31 +181,29 @@ public class UIManager : MonoBehaviour, IDataPersistence
         switchCount += 1;
         if (switchCount % 3 == 1)
         {
-            Debug.Log("switched to character 1");
             CurrentCharacter = Characters[0];
             UIupdate();
         }
         else if (switchCount % 3 == 2)
         {
-            Debug.Log("switched to character 2");
             CurrentCharacter = Characters[1];
             UIupdate();
         }
         else if (switchCount % 3 == 0)
         {
-            Debug.Log("switched to character 3");
             CurrentCharacter = Characters[2];
             UIupdate();
         }
         SwitchButton.GetComponent<Image>().sprite =
-            CurrentCharacter.GetComponent<PlayerValue>().CharacterMiniSprite;
+            CurrentCharacter
+                .GetComponent<PlayerController>()
+                .CharacterMiniSprite;
 
         //Update Inventory items
         InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerValue>().Items;
+            CurrentCharacter.GetComponent<PlayerController>().Items;
         InventoryManager.GetComponent<InventoryManager>().ListItems();
 
-        //close all opened window
         //close the cooker pannel UI
         if (CookerPannelOpened == true)
         {
@@ -283,12 +256,12 @@ public class UIManager : MonoBehaviour, IDataPersistence
     {
         //add the item to the character's inventory
         CurrentCharacter
-            .GetComponent<PlayerValue>()
+            .GetComponent<PlayerController>()
             .Add(InventoryManager.GetComponent<InventoryManager>().CurrentItem);
 
         //update item in Inventory manager
         InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerValue>().Items;
+            CurrentCharacter.GetComponent<PlayerController>().Items;
         InventoryManager.GetComponent<InventoryManager>().ListItems();
 
         //remove the item from orginal item behaviour
@@ -386,19 +359,22 @@ public class UIManager : MonoBehaviour, IDataPersistence
                 InventoryManager.GetComponent<InventoryManager>().CurrentItem;
             for (
                 int i = 0;
-                i < CurrentCharacter.GetComponent<PlayerValue>().Items.Count;
+                i <
+                CurrentCharacter.GetComponent<PlayerController>().Items.Count;
                 i++
             )
             {
                 if (
-                    CurrentCharacter.GetComponent<PlayerValue>().Items[i] ==
+                    CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .Items[i] ==
                     item
                 )
                 {
                     CurrentCharacter
-                        .GetComponent<PlayerValue>()
+                        .GetComponent<PlayerController>()
                         .Remove(CurrentCharacter
-                            .GetComponent<PlayerValue>()
+                            .GetComponent<PlayerController>()
                             .Items[i]);
                     break;
                 }
@@ -406,7 +382,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
             //update inventory items in Inventory UI
             InventoryManager.GetComponent<InventoryManager>().Items =
-                CurrentCharacter.GetComponent<PlayerValue>().Items;
+                CurrentCharacter.GetComponent<PlayerController>().Items;
             InventoryManager.GetComponent<InventoryManager>().ListItems();
 
             //respawn the item instance
@@ -434,16 +410,19 @@ public class UIManager : MonoBehaviour, IDataPersistence
         //remove the item in the current character's inventory
         for (
             int i = 0;
-            i < CurrentCharacter.GetComponent<PlayerValue>().Items.Count;
+            i < CurrentCharacter.GetComponent<PlayerController>().Items.Count;
             i++
         )
         {
-            if (CurrentCharacter.GetComponent<PlayerValue>().Items[i] == item)
+            if (
+                CurrentCharacter.GetComponent<PlayerController>().Items[i] ==
+                item
+            )
             {
                 CurrentCharacter
-                    .GetComponent<PlayerValue>()
+                    .GetComponent<PlayerController>()
                     .Remove(CurrentCharacter
-                        .GetComponent<PlayerValue>()
+                        .GetComponent<PlayerController>()
                         .Items[i]);
                 break;
             }
@@ -451,7 +430,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
         //update inventory items in Inventory UI
         InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerValue>().Items;
+            CurrentCharacter.GetComponent<PlayerController>().Items;
         InventoryManager.GetComponent<InventoryManager>().ListItems();
 
         //Update Storage items in item behaviour
@@ -486,16 +465,19 @@ public class UIManager : MonoBehaviour, IDataPersistence
         //remove the item in the current character's inventory
         for (
             int i = 0;
-            i < CurrentCharacter.GetComponent<PlayerValue>().Items.Count;
+            i < CurrentCharacter.GetComponent<PlayerController>().Items.Count;
             i++
         )
         {
-            if (CurrentCharacter.GetComponent<PlayerValue>().Items[i] == item)
+            if (
+                CurrentCharacter.GetComponent<PlayerController>().Items[i] ==
+                item
+            )
             {
                 CurrentCharacter
-                    .GetComponent<PlayerValue>()
+                    .GetComponent<PlayerController>()
                     .Remove(CurrentCharacter
-                        .GetComponent<PlayerValue>()
+                        .GetComponent<PlayerController>()
                         .Items[i]);
                 break;
             }
@@ -503,7 +485,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
         //update inventory items in Inventory UI
         InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerValue>().Items;
+            CurrentCharacter.GetComponent<PlayerController>().Items;
         InventoryManager.GetComponent<InventoryManager>().ListItems();
 
         //close dialog window
@@ -526,29 +508,61 @@ public class UIManager : MonoBehaviour, IDataPersistence
         InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
     }
 
+    //Data save section: where all the data load and save methods are written
     public void LoadData(GameData data)
     {
-        CurrentCharacter.GetComponent<PlayerValue>().health = data.health;
+        //CurrentCharacter.GetComponent<PlayerController>().health = data.health;
     }
 
     public void SaveData(ref GameData data)
     {
-        data.health = CurrentCharacter.GetComponent<PlayerValue>().health;
+        //data.health = CurrentCharacter.GetComponent<PlayerController>().health;
     }
 
+    //Play Animation section: where all the method used to display animations
     public IEnumerator PlayPortalAnimation()
     {
-        PortalBackground.SetActive(true);
-        yield return new WaitForSeconds(ScreenBlankTime);
+        PortalBackground.GetComponent<Animator>().SetBool("start", true);
+        yield return new WaitForSeconds(transitionOutTime);
+        PortalBackground.GetComponent<Animator>().SetBool("start", false);
         PortalBackground.GetComponent<Animator>().SetBool("end", true);
-        PortalBackground.SetActive(false);
+        yield return new WaitForSeconds(transitionOutTime);
+        PortalBackground.GetComponent<Animator>().SetBool("end", false);
     }
 
-    public IEnumerator PlaySleepAnimation()
+    public void PlaySleepAnimation()
     {
-        PortalBackground.SetActive(true);
-        yield return new WaitForSeconds(50);
-        PortalBackground.SetActive(false);
+    }
+
+    //Update the UI information when an event occurs
+    public void UIupdate()
+    {
+        //Update the current UI information
+        HealthBar.value =
+            CurrentCharacter.GetComponent<PlayerController>().health;
+        StarvationBar.value =
+            CurrentCharacter.GetComponent<PlayerController>().Starvation;
+
+        //Update the current camera position
+        MainCamera.GetComponent<CameraController>().lookAt =
+            CurrentCharacter.transform;
+
+        //Update the character controller script
+        for (int i = 0; i < Characters.Length; i++)
+        {
+            Characters[i].GetComponent<PlayerController>().enabled = false;
+            Characters[i].GetComponent<Animator>().SetFloat("speed", 0);
+        }
+        CurrentCharacter.GetComponent<PlayerController>().enabled = true;
+        MainCamera.GetComponent<CameraController>().lookAt =
+            CurrentCharacter.transform;
+    }
+
+    public void addOneDay()
+    {
+        DayIndex += 1;
+        text = DayRecord.GetComponent<TextMeshProUGUI>();
+        text.SetText("DAY" + DayIndex);
     }
 
     public void displayStoragePannel()
@@ -575,13 +589,9 @@ public class UIManager : MonoBehaviour, IDataPersistence
     public void ResetDialogButtons()
     {
         UtilizeButton.gameObject.SetActive(false);
-
         StoreButton.gameObject.SetActive(false);
-
         DiscardButton.gameObject.SetActive(false);
-
         PlaceButton.gameObject.SetActive(false);
-
         ReadyToCookButton.gameObject.SetActive(false);
     }
 
@@ -607,6 +617,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
         PlayerFreezeState();
     }
 
+    //Character section: where all the actions for character methods are written
     public void PlayerFreezeState()
     {
         if (

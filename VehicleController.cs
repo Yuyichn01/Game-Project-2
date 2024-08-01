@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,13 +9,15 @@ public class VehicleController : MonoBehaviour
 
     public Rigidbody2D frontWheel;
 
-    public float speed = 30;
+    public float acceleration = 30;
 
-    private float movement;
+    public float maximumSpeed = 60; // Limit the speed
 
-    // Start is called before the first frame update
+    private float movement = 0;
+
     void Start()
     {
+        maximumSpeed *= 100;
     }
 
     // Update is called once per frame
@@ -25,7 +28,18 @@ public class VehicleController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        backWheel.AddTorque(-movement * speed * Time.fixedDeltaTime);
-        frontWheel.AddTorque(-movement * speed * Time.fixedDeltaTime);
+        // Check if the current velocity magnitude exceeds the maximum speed
+        if (
+            Math.Abs(backWheel.angularVelocity) < Math.Abs(maximumSpeed) &&
+            Math.Abs(frontWheel.angularVelocity) < Math.Abs(maximumSpeed)
+        )
+        {
+            float torque = movement * acceleration * Time.fixedDeltaTime;
+            backWheel.AddTorque(-torque);
+            frontWheel.AddTorque(-torque);
+        }
+
+        // Log the applied torque for debugging purposes
+        Debug.Log(backWheel.angularVelocity);
     }
 }

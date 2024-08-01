@@ -38,6 +38,8 @@ public class MapGenerator2 : MonoBehaviour
     [Header("Ground section")]
     public int groundTopLimit;
 
+    public int groundTopMinimum = 0;
+
     private List<Transform> Ground;
 
     private List<Transform> GroundTop;
@@ -158,7 +160,11 @@ public class MapGenerator2 : MonoBehaviour
             addPosition1 = lastLevelPartTransform1.Find("AddPosition").position;
 
             // generate the ground tops
-            for (int j = 0; j < Random.Range(0, groundTopLimit); j++)
+            for (
+                int j = 0;
+                j < Random.Range(groundTopMinimum, groundTopLimit);
+                j++
+            )
             {
                 Transform chosenLevelPart2 =
                     GroundTop[Random.Range(0, GroundTop.Count)];
