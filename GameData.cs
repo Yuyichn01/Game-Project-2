@@ -1,14 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 
-[System.Serializable]
+[Serializable]
 public class GameData
 {
-    public int health;
+    public int score;
 
-    public GameData()
+    public int currentSceneIndex;
+
+    public float[] position;
+
+    public GameData(int score)
     {
-        this.health = 0;
+        this.score = score;
+        /*this.position = new float[3];
+        this.position[0] = position.x;
+        this.position[1] = position.y;
+        this.position[2] = position.z;
+        */
     }
 }

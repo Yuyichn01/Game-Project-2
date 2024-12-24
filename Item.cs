@@ -34,4 +34,7 @@ public class Item : ScriptableObject
 
     //the object instance for player to pick or interact
     public GameObject objectInstance;
+
+    //the projectile of the weapon
+    public GameObject projectile;
 }

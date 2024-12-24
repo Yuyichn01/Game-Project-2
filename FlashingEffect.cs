@@ -22,7 +22,7 @@ public class FlashingEffect : MonoBehaviour
 
     public bool PlayOnce = false;
 
-    public float FadingTime;
+    private float FadingTime = 1;
 
     public float FadingPeriod;
 

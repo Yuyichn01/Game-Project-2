@@ -46,13 +46,19 @@ public class MapGenerator3 : MonoBehaviour
 
     public List<Transform> Ground1Top;
 
+    public List<Transform> Ground1Ceilings;
+
     public List<Transform> Ground2;
 
     public List<Transform> Ground2Top;
 
+    public List<Transform> Ground2Ceilings;
+
     private List<Transform> Ground;
 
     private List<Transform> GroundTop;
+
+    private List<Transform> GroundCeilings;
 
     private Vector3 endPosition4;
 
@@ -157,10 +163,12 @@ public class MapGenerator3 : MonoBehaviour
             case 0:
                 Ground = Ground1;
                 GroundTop = Ground1Top;
+                GroundCeilings = Ground1Ceilings;
                 break;
             case 1:
                 Ground = Ground2;
                 GroundTop = Ground2Top;
+                GroundCeilings = Ground2Ceilings;
                 break;
         }
 
@@ -250,63 +258,79 @@ public class MapGenerator3 : MonoBehaviour
             }
 
             // generate ground tops
-            for (
-                int j = 0;
-                j < Random.Range(groundTopMinimum, groundTopLimit);
-                j++
-            )
+            int TopLimitRandNum =
+                Random.Range(groundTopMinimum, groundTopLimit);
+            int groundRandNum = Random.Range(0, GroundTop.Count);
+            for (int j = 0; j < TopLimitRandNum; j++)
             {
-                Transform chosenLevelPart2 =
-                    GroundTop[Random.Range(0, GroundTop.Count)];
-                Transform lastLevelPartTransform2 =
-                    Instantiate(chosenLevelPart2,
-                    addPosition1,
-                    Quaternion.identity);
-                addPosition1 =
-                    lastLevelPartTransform2.Find("AddPosition").position;
-
-                //generate ground top doors
-                if (HasChildWithName(lastLevelPartTransform2, "DoorPosition"))
+                //if it is not the last floor
+                if (j != (TopLimitRandNum - 1))
                 {
-                    chosenObject = Doors[Random.Range(0, Doors.Count)];
-                    Instantiate(chosenObject,
-                    lastLevelPartTransform2.Find("DoorPosition").position,
-                    Quaternion.identity);
-                }
+                    Transform chosenLevelPart2 = GroundTop[groundRandNum];
+                    Transform lastLevelPartTransform2 =
+                        Instantiate(chosenLevelPart2,
+                        addPosition1,
+                        Quaternion.identity);
+                    addPosition1 =
+                        lastLevelPartTransform2.Find("AddPosition").position;
 
-                //generate ground top windows
-                for (int i = 0; i < windowPositions.Length; i++)
-                {
+                    //generate ground top doors
                     if (
                         HasChildWithName(lastLevelPartTransform2,
-                        windowPositions[i])
+                        "DoorPosition")
                     )
                     {
-                        chosenObject = Windows[Random.Range(0, Windows.Count)];
+                        chosenObject = Doors[Random.Range(0, Doors.Count)];
                         Instantiate(chosenObject,
-                        lastLevelPartTransform2
-                            .Find(windowPositions[i])
-                            .position,
+                        lastLevelPartTransform2.Find("DoorPosition").position,
                         Quaternion.identity);
+                    }
+
+                    //generate ground top windows
+                    for (int i = 0; i < windowPositions.Length; i++)
+                    {
+                        if (
+                            HasChildWithName(lastLevelPartTransform2,
+                            windowPositions[i])
+                        )
+                        {
+                            chosenObject =
+                                Windows[Random.Range(0, Windows.Count)];
+                            Instantiate(chosenObject,
+                            lastLevelPartTransform2
+                                .Find(windowPositions[i])
+                                .position,
+                            Quaternion.identity);
+                        }
+                    }
+
+                    //generate ground top decorators
+                    for (int i = 0; i < decoratorPositions.Length; i++)
+                    {
+                        if (
+                            HasChildWithName(lastLevelPartTransform2,
+                            decoratorPositions[i])
+                        )
+                        {
+                            chosenObject =
+                                WallDecorator[Random
+                                    .Range(0, WallDecorator.Count)];
+                            Instantiate(chosenObject,
+                            lastLevelPartTransform2
+                                .Find(decoratorPositions[i])
+                                .position,
+                            Quaternion.identity);
+                        }
                     }
                 }
-
-                //generate ground top decorators
-                for (int i = 0; i < decoratorPositions.Length; i++)
+                else
                 {
-                    if (
-                        HasChildWithName(lastLevelPartTransform2,
-                        decoratorPositions[i])
-                    )
-                    {
-                        chosenObject =
-                            WallDecorator[Random.Range(0, WallDecorator.Count)];
-                        Instantiate(chosenObject,
-                        lastLevelPartTransform2
-                            .Find(decoratorPositions[i])
-                            .position,
+                    Transform chosenLevelPart2 =
+                        GroundCeilings[Random.Range(0, GroundCeilings.Count)];
+                    Transform lastLevelPartTransform2 =
+                        Instantiate(chosenLevelPart2,
+                        addPosition1,
                         Quaternion.identity);
-                    }
                 }
             }
         }

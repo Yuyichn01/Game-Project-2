@@ -16,7 +16,9 @@ public class ItemUI : MonoBehaviour
     public enum ItemType
     {
         InventoryItem,
-        StorageItem
+        StorageItem,
+        CookerItem,
+        CraftItem
     }
 
     [Header("ItemUI setting section")]
@@ -44,6 +46,8 @@ public class ItemUI : MonoBehaviour
     // Start is called before the first frame update
     public void TaskOnClick()
     {
+        Debug.Log("The item UI button is clicked");
+
         //set the current item data in Inventory to this item data
         InventoryManager.GetComponent<InventoryManager>().CurrentItem =
             itemData;
@@ -62,6 +66,8 @@ public class ItemUI : MonoBehaviour
         switch (type)
         {
             case ItemType.InventoryItem:
+                UIManager.GetComponent<UIManager>().lastOpenedPannel =
+                    "Inventory";
                 if (
                     currentCharacter
                         .GetComponent<PlayerController>()
@@ -111,6 +117,18 @@ public class ItemUI : MonoBehaviour
                 Debug.Log("This is InventoryItem");
                 break;
             case ItemType.StorageItem:
+                UIManager.GetComponent<UIManager>().lastOpenedPannel =
+                    "Storage";
+                UIManager
+                    .GetComponent<UIManager>()
+                    .StoreButton
+                    .gameObject
+                    .SetActive(true);
+
+                Debug.Log("this is Storage Item");
+                break;
+            case ItemType.CookerItem:
+                UIManager.GetComponent<UIManager>().lastOpenedPannel = "Cooker";
                 UIManager
                     .GetComponent<UIManager>()
                     .StoreButton

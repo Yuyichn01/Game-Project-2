@@ -88,7 +88,7 @@ public class InventoryManager : MonoBehaviour
             Image image = obj.GetComponent<Image>();
             image.sprite = foodItem.icon;
             obj.GetComponent<ItemUI>().itemData = foodItem;
-            obj.GetComponent<ItemUI>().type = ItemUI.ItemType.StorageItem;
+            obj.GetComponent<ItemUI>().type = ItemUI.ItemType.CookerItem;
         }
     }
 }

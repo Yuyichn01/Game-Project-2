@@ -2,27 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
-/*
-Author: Yi Yu
-
-Date:2024/4/27
-
-Description:
-This script defines object's behaviour when player interacts with it. Attach this script to the object that the player interacts with. 
-
-Implementation steps:
-Remeber to set all item tag and layer:
-*add "door" tag to door
-*add "ladder" tag to ladder
-*tick isTrigger for all item
-
-Make sure to set values:
-*change gravity scale in rigidbody to 10
-
-set UI manager tag
-*/
 public class ItemBehaviour : MonoBehaviour
 {
     // the type of the item
@@ -37,11 +17,28 @@ public class ItemBehaviour : MonoBehaviour
         Cooker,
         Door,
         Information,
-        Bed
+        Bed,
+        Escalator,
+        CheckPoint,
+        CraftingTable,
+        Weapon
     }
 
+    [Header("Interaction UI section")]
+    // Changed from Image to SpriteRenderer for a 2D sprite image
+    public SpriteRenderer interactionUI;
+
+    private float fadeDuration = 0.2f;
+
+    private bool isFadingIn = true;
+
+    [Header("Dialog section")]
+    public Dialog ItemDialog;
+
+    public bool destroyAfterRead = false;
+
     [Header("Item section")]
-    // wheather the item is pickable
+    // Whether the item is pickable
     public bool pickable;
 
     public ItemType type;
@@ -77,41 +74,25 @@ public class ItemBehaviour : MonoBehaviour
 
     public bool isFull = false;
 
-    [Header("Cooker section")]
-    public List<Item> dish = new List<Item>();
-
-    public List<Item> food = new List<Item>();
-
-    private int NumberOfInstantNoodle = 0;
-
-    private int NumberOfRice = 0;
-
-    private int NumberOfBread = 0;
-
-    private int NumberOfLunchMeat = 0;
-
-    private int NumberOfSausage = 0;
-
-    private int NumberOfWater = 0;
-
-    private int NumberOfDishes = 0;
-
-    private int NumebrOfFruitJam = 0;
+    [Header("Check point section")]
+    public int CheckPointSceneIndex = 0;
 
     public void Start()
     {
+        // Assign managers and players variable
         Player1 = GameObject.FindWithTag("Player1");
         Player2 = GameObject.FindWithTag("Player2");
         Player3 = GameObject.FindWithTag("Player3");
         UIManager = GameObject.FindWithTag("UIManager");
         DialogManager = GameObject.FindWithTag("DialogManager");
         InventoryManager = GameObject.FindWithTag("InventoryManager");
+
+        StartCoroutine(FadeImage());
     }
 
     public void Add(Item item)
     {
-        Item tmpItem;
-        tmpItem = item;
+        Item tmpItem = item;
         Items.Add (tmpItem);
     }
 
@@ -121,170 +102,43 @@ public class ItemBehaviour : MonoBehaviour
         Items.Remove (item);
     }
 
-    public void AddToFoodList(Item item)
+    IEnumerator FadeImage()
     {
-        Item tmpItem;
-        tmpItem = item;
-        food.Add (tmpItem);
-    }
-
-    public void PrepareToCook(Item item)
-    {
-        //add the food item in the cooker
-        Item tmpItem;
-        tmpItem = item;
-        food.Add (tmpItem);
-    }
-
-    public void CancelCook(Item item)
-    {
-        //remove the food item in the cooker
-        food.Remove (item);
-    }
-
-    public void StartToCook()
-    {
-        //reset the number of dish and food to 0
-        NumberOfDishes = 0;
-
-        NumberOfInstantNoodle = 0;
-
-        NumberOfRice = 0;
-
-        NumberOfBread = 0;
-
-        NumberOfLunchMeat = 0;
-
-        NumberOfSausage = 0;
-
-        NumberOfWater = 0;
-
-        NumberOfDishes = 0;
-
-        NumebrOfFruitJam = 0;
-
-        //calculate number of food element in the food list
-        for (int i = 0; i < food.Count; i++)
+        while (true)
         {
-            if (food[i].ItemName == "InstantNoodle")
-            {
-                NumberOfInstantNoodle += 1;
-            }
-            else if (food[i].ItemName == "Rice")
-            {
-                NumberOfRice += 1;
-            }
-            else if (food[i].ItemName == "Bread")
-            {
-                NumberOfBread += 1;
-            }
-            else if (food[i].ItemName == "LunchMeat")
-            {
-                NumberOfLunchMeat += 1;
-            }
-            else if (food[i].ItemName == "Sausage")
-            {
-                NumberOfSausage += 1;
-            }
-            else if (food[i].ItemName == "Water")
-            {
-                NumberOfWater += 1;
-            }
-            else if (food[i].ItemName == "FruitJam")
-            {
-                NumebrOfFruitJam += 1;
-            }
-            else
-            {
-                Debug.Log("The Item Name of food is not assigned");
-            }
-        }
+            float alpha = isFadingIn ? 0f : 1f;
+            float targetAlpha = isFadingIn ? 1f : 0f;
 
-        //Instant noodle receipe
-        if (
-            NumberOfInstantNoodle != 0 &&
-            NumberOfRice == 0 &&
-            NumberOfBread == 0 &&
-            NumberOfWater != 0
-        )
-        {
-            if (NumberOfInstantNoodle == 1 && NumberOfWater == 1)
+            Color color = interactionUI.color;
+            while (Mathf.Abs(color.a - targetAlpha) > 0.01f)
             {
-                //remove all food items in the cooker
-                food.Clear();
+                color.a =
+                    Mathf
+                        .Lerp(color.a,
+                        targetAlpha,
+                        Time.deltaTime / fadeDuration);
+                interactionUI.color = color;
+                yield return null;
+            }
 
-                //add fried instant noodle UI in cooker
-                AddToFoodList(dish[0]);
-
-                //spawn Fried instant noodle
-                Debug.Log("The fried noodle has been cooked");
-            }
-            else if (NumberOfInstantNoodle == 1 && NumberOfWater == 2)
-            {
-                //spawn instant noodle with soup
-                Debug.Log("The instant noodle with soup has been cooked");
-            }
-            else
-            {
-                //cannot cook the item
-                Debug.Log("The food cannot be cooked");
-            }
-        } //Rice receipe
-        else if (
-            NumberOfRice != 0 &&
-            NumberOfInstantNoodle == 0 &&
-            NumberOfBread == 0 &&
-            NumberOfWater != 0
-        )
-        {
-            NumberOfDishes = NumberOfRice;
-            switch (NumberOfRice)
-            {
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-            }
-        } //Bread receipe
-        else if (
-            NumberOfBread != 0 &&
-            NumberOfRice == 0 &&
-            NumberOfInstantNoodle == 0
-        )
-        {
-            NumberOfDishes = NumberOfBread;
-            switch (NumberOfBread)
-            {
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-            }
-        }
-        else
-        {
-            //cannot cook the item
-            Debug.Log("The food cannot be cooked");
+            isFadingIn = !isFadingIn;
+            yield return new WaitForSeconds(0.01f);
         }
     }
 
     // the transform of current item
     public void itemBehaviour()
     {
-        //update the Current Character
+        // Update the Current Character
         CurrentCharacter = UIManager.GetComponent<UIManager>().CurrentCharacter;
 
-        // if the item is pickable, do these action
+        // If the item is pickable, do these actions
         if (pickable == true)
         {
             //Play interact animation
             CurrentCharacter.GetComponent<Animator>().SetTrigger("Interact");
 
-            // Add the object to the picked up Items list
+            // Add the object to the picked-up Items list
             switch (type)
             {
                 case ItemType.Food:
@@ -299,23 +153,34 @@ public class ItemBehaviour : MonoBehaviour
                     Debug.Log("This is food");
                     break;
                 case ItemType.Tool:
-                    Debug.Log("this is tool");
+                    Debug.Log("this is a tool");
                     break;
                 case ItemType.Heart:
                     Debug.Log("this is a Heart");
-                    Player1.GetComponent<PlayerController>().health += 1;
+                    CurrentCharacter.GetComponent<PlayerController>().health +=
+                        10;
+                    break;
+                case ItemType.Weapon:
+                    CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .Add(ItemData);
+                    InventoryManager.GetComponent<InventoryManager>().Items =
+                        CurrentCharacter.GetComponent<PlayerController>().Items;
+                    InventoryManager
+                        .GetComponent<InventoryManager>()
+                        .ListItems();
+                    Debug.Log("This is a weapon");
                     break;
             }
 
             Destroy(this.gameObject);
         }
         else
-        // if the item is not pickable do these action
         {
+            // If the item is not pickable do these actions
             switch (type)
             {
                 case ItemType.Entry:
-                    //Play interact animation
                     CurrentCharacter
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
@@ -323,24 +188,19 @@ public class ItemBehaviour : MonoBehaviour
                     SceneManager.LoadScene (sceneIndex);
                     break;
                 case ItemType.Portal:
-                    //Play interact animation
                     CurrentCharacter
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
-
-                    // play transition background
                     StartCoroutine(UIManager
                         .GetComponent<UIManager>()
                         .PlayPortalAnimation());
 
-                    //if characters are together, teleport them all
                     if (UIManager.GetComponent<UIManager>().isSingle == true)
                     {
                         CurrentCharacter.transform.position =
                             NextPortalPosition.position;
                     }
                     else
-                    //else teleport single
                     {
                         Player1.transform.position =
                             NextPortalPosition.position;
@@ -350,7 +210,6 @@ public class ItemBehaviour : MonoBehaviour
                             NextPortalPosition.position;
                     }
 
-                    //teleport camera
                     UIManager
                         .GetComponent<UIManager>()
                         .MainCamera
@@ -368,20 +227,15 @@ public class ItemBehaviour : MonoBehaviour
                     Debug.Log("this is a portal");
                     break;
                 case ItemType.Storage:
-                    //Play interact animation
                     CurrentCharacter
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
-
-                    //get,list and display items in this Object
                     InventoryManager
                         .GetComponent<InventoryManager>()
                         .StorageItems = Items;
                     InventoryManager
                         .GetComponent<InventoryManager>()
                         .ListStorageItems();
-
-                    //display storage UI pannel
                     UIManager.GetComponent<UIManager>().displayStoragePannel();
                     Debug.Log("this is Storage");
                     break;
@@ -391,40 +245,87 @@ public class ItemBehaviour : MonoBehaviour
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
 
-                    //get,list and display food items in this Object
-                    InventoryManager
-                        .GetComponent<InventoryManager>()
-                        .FoodItems = food;
-                    InventoryManager
-                        .GetComponent<InventoryManager>()
-                        .ListFoodItems();
-
-                    //display storage UI pannel
-                    UIManager.GetComponent<UIManager>().displayCookerPannel();
-                    Debug.Log("this is a cooker");
-
+                    // Access the Cooker script on this object
+                    Cooker cooker = GetComponent<Cooker>();
+                    if (cooker != null)
+                    {
+                        // Display the cooker UI panel, list its items
+                        InventoryManager
+                            .GetComponent<InventoryManager>()
+                            .FoodItems = cooker.food;
+                        InventoryManager
+                            .GetComponent<InventoryManager>()
+                            .ListFoodItems();
+                        UIManager
+                            .GetComponent<UIManager>()
+                            .displayCookerPannel();
+                        Debug.Log("this is a cooker");
+                    }
+                    else
+                    {
+                        Debug
+                            .LogWarning("Please attatch the cooker script under this object");
+                    }
                     break;
                 case ItemType.Information:
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+                    UIManager.GetComponent<UIManager>().ResetDialogButtons();
+                    if (ItemDialog != null)
+                    {
+                        DialogManager
+                            .GetComponent<DialogManager>()
+                            .StartDialog(ItemDialog);
+                    }
+
+                    Debug.Log("this is a piece of information");
+
+                    //check whether to set active or not
+                    if (destroyAfterRead == true)
+                    {
+                        Destroy(this.gameObject);
+                    }
+                    break;
+                case ItemType.Bed:
+                    UIManager.GetComponent<UIManager>().addOneDay();
+                    Debug.Log("this is a bed");
+                    break;
+                case ItemType.Escalator:
+                    EscalatorController controller =
+                        GetComponentInChildren<EscalatorController>();
+                    controller.stepOnEscalator = true;
+                    break;
+                case ItemType.CheckPoint:
+                    SceneManager.LoadScene (CheckPointSceneIndex);
+                    break;
+                case ItemType.CraftingTable:
                     //Play interact animation
                     CurrentCharacter
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
 
-                    //display dialog window
-                    UIManager.GetComponent<UIManager>().ResetDialogButtons();
-                    DialogManager
-                        .GetComponent<DialogManager>()
-                        .StartDialog(ItemData.dialog);
-
-                    Debug.Log("this is a piece of information");
-                    break;
-                case ItemType.Bed:
-                    // play transition background
-                    UIManager.GetComponent<UIManager>().PlaySleepAnimation();
-
-                    //add the date number in UI manager
-                    UIManager.GetComponent<UIManager>().addOneDay();
-                    Debug.Log("this is a bed");
+                    // Access the Crafting table script on this object
+                    CraftingTable craftTable = GetComponent<CraftingTable>();
+                    if (craftTable != null)
+                    {
+                        // Display the crafting UI panel, list its items
+                        InventoryManager
+                            .GetComponent<InventoryManager>()
+                            .FoodItems = craftTable.food;
+                        InventoryManager
+                            .GetComponent<InventoryManager>()
+                            .ListFoodItems();
+                        UIManager
+                            .GetComponent<UIManager>()
+                            .displayCraftingTable();
+                        Debug.Log("This is a Crafting table");
+                    }
+                    else
+                    {
+                        Debug
+                            .LogWarning("Please attatch the crafting table script under this object");
+                    }
                     break;
             }
         }

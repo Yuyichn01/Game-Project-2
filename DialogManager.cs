@@ -20,6 +20,8 @@ public class DialogManager : MonoBehaviour
 
     private GameObject InventoryManager;
 
+    private GameObject StatusManager;
+
     [Header("Text section")]
     private Queue<string> sentences;
 
@@ -42,6 +44,8 @@ public class DialogManager : MonoBehaviour
     [Header("Dialog section")]
     public Dialog[] dialogs;
 
+    private float timeScaletmp;
+
     private bool withPortrait = true;
 
     // Start is called before the first frame update
@@ -50,6 +54,7 @@ public class DialogManager : MonoBehaviour
         //Initialize managers
         UIManager = GameObject.FindWithTag("UIManager");
         InventoryManager = GameObject.FindWithTag("InventoryManager");
+        StatusManager = GameObject.FindWithTag("StatusManager");
 
         //initialize sentences
         sentences = new Queue<string>();
@@ -61,37 +66,42 @@ public class DialogManager : MonoBehaviour
         ResetDialogBackground();
 
         //determine the dialog based on the date
-        switch (DayIndex)
+        if (dialogs.Length != 0)
         {
-            case 1:
-                Debug.Log("Day1 dialog started");
-                withPortrait = false;
-                StartDialog(dialogs[DayIndex - 1]);
-                break;
-            case 2:
-                Debug.Log("Day2 dialog started");
-                break;
-            case 3:
-                Debug.Log("Day3 dialog started");
-                break;
-            case 4:
-                Debug.Log("Day4 dialog started");
-                break;
-            case 5:
-                Debug.Log("Day5 dialog started");
-                break;
-            case 6:
-                Debug.Log("Day6 dialog started");
-                break;
-            case 7:
-                Debug.Log("Day7 dialog started");
-                break;
+            switch (DayIndex)
+            {
+                case 1:
+                    Debug.Log("Day1 dialog started");
+                    withPortrait = false;
+                    StartDialog(dialogs[DayIndex - 1]);
+                    break;
+                case 2:
+                    Debug.Log("Day2 dialog started");
+                    break;
+                case 3:
+                    Debug.Log("Day3 dialog started");
+                    break;
+                case 4:
+                    Debug.Log("Day4 dialog started");
+                    break;
+                case 5:
+                    Debug.Log("Day5 dialog started");
+                    break;
+                case 6:
+                    Debug.Log("Day6 dialog started");
+                    break;
+                case 7:
+                    Debug.Log("Day7 dialog started");
+                    break;
+            }
         }
     }
 
     //start to display the sentences and background image for dialog
     public void StartDialog(Dialog dialog)
     {
+        timeScaletmp = StatusManager.GetComponent<StatusManager>().timeScale;
+
         //if portrait is allowed to display
         if (withPortrait)
         {
@@ -99,9 +109,6 @@ public class DialogManager : MonoBehaviour
             ResetDialogPortrait();
             UpdatePortrait();
         }
-
-        //reset dialog buttons
-        UIManager.GetComponent<UIManager>().ResetDialogButtons();
 
         //freeze character movement
         UIManager
@@ -116,6 +123,8 @@ public class DialogManager : MonoBehaviour
         //start to set the dialog background
         if (dialog.dialogBackground != null)
         {
+            //set the speed of time to zero
+            StatusManager.GetComponent<StatusManager>().timeScale = 0;
             DialogBackground.SetActive(true);
             UpdateDialogBackground(dialog.dialogBackground);
         }
@@ -147,6 +156,8 @@ public class DialogManager : MonoBehaviour
     //end the conversation
     public void EndDialog()
     {
+        StatusManager.GetComponent<StatusManager>().timeScale = timeScaletmp;
+
         //pull out the Dailog window
         DialogAnimator.SetBool("IsOpen", false);
         for (int i = 0; i < DialogPortrait.Length; i++)
@@ -157,12 +168,20 @@ public class DialogManager : MonoBehaviour
         //reset and close dialog background
         StartCoroutine(CloseDialogBackground());
 
-        //unfreeze character movement
-        UIManager
-            .GetComponent<UIManager>()
-            .CurrentCharacter
-            .GetComponent<PlayerController>()
-            .UnfreezeCharacter();
+        //unfreeze character movement conditionally
+        if (
+            !UIManager.GetComponent<UIManager>().StoragePannelOpened &&
+            !UIManager.GetComponent<UIManager>().CookerPannelOpened &&
+            !UIManager.GetComponent<UIManager>().CraftingTableOpened
+        )
+        {
+            UIManager
+                .GetComponent<UIManager>()
+                .CurrentCharacter
+                .GetComponent<PlayerController>()
+                .UnfreezeCharacter();
+        }
+
         Debug.Log("End of conversation");
 
         //reset the withPortrait to default
@@ -208,12 +227,13 @@ public class DialogManager : MonoBehaviour
     public void ResetDialogBackground()
     {
         DialogBackground.GetComponent<Image>().sprite = TransparentTexture;
+        DialogBackground.SetActive(false);
     }
 
     IEnumerator CloseDialogBackground()
     {
         DialogBackground.GetComponent<Animator>().SetBool("start", true);
-        yield return new WaitForSeconds(5.0f);
+        yield return new WaitForSeconds(2.0f);
         DialogBackground.SetActive(false);
     }
 

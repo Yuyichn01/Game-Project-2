@@ -9,4 +9,6 @@ public class Dialog
     public string[] sentences;
 
     public Sprite dialogBackground;
+
+    public AudioSource dialogMusic;
 }

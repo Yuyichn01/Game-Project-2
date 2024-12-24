@@ -7,7 +7,7 @@ using UnityEngine.UI;
 /*Attach to Canvas
 Assign Health bar to slider
 */
-public class UIManager : MonoBehaviour, IDataPersistence
+public class UIManager : MonoBehaviour
 {
     [Header("Buttons section")]
     public Button SaveButton;
@@ -17,6 +17,8 @@ public class UIManager : MonoBehaviour, IDataPersistence
     public Button NewGameButton;
 
     public Button InventoryButton;
+
+    public Button PhoneButton;
 
     public Button SwitchButton;
 
@@ -36,6 +38,10 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
     public Button StartToCookButton;
 
+    public Button ReadyToCraftButton;
+
+    public Button StartToCraftButton;
+
     public CameraController Camera;
 
     private int switchCount = 1;
@@ -50,11 +56,13 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
     public GameObject CurrentCharacter;
 
-    public GameObject DayRecord;
+    public TMP_Text DayRecord;
 
     public int DayIndex = 1;
 
     private bool InventoryOpened = false;
+
+    private bool PhoneOpened = false;
 
     [Header("Character section")]
     public GameObject[] Characters;
@@ -84,15 +92,25 @@ public class UIManager : MonoBehaviour, IDataPersistence
     [Header("Inventory section")]
     public Animator InventoryAnimator;
 
+    public string lastOpenedPannel;
+
     [Header("Storage section")]
     public Animator StorageAnimator;
 
-    private bool StoragePannelOpened = false;
+    public bool StoragePannelOpened = false;
 
     [Header("Cooker section")]
     public Animator CookerAnimator;
 
-    private bool CookerPannelOpened = false;
+    public bool CookerPannelOpened = false;
+
+    [Header("Phone section")]
+    public Animator PhoneAnimator;
+
+    [Header("Crafting table section")]
+    public Animator CraftingTableAnimator;
+
+    public bool CraftingTableOpened = false;
 
     // Start is called before the first frame update
     public void Start()
@@ -109,11 +127,15 @@ public class UIManager : MonoBehaviour, IDataPersistence
         SwitchButton.onClick.AddListener (TaskOnSwitchButton);
         PressToStartButton.onClick.AddListener (TaskOnPressToStartButton);
         ControlModeButton.onClick.AddListener (TaskOnControlModeButton);
+        UtilizeButton.onClick.AddListener (TaskOnUtilizeButton);
         StoreButton.onClick.AddListener (TaskOnStoreButton);
         DiscardButton.onClick.AddListener (TaskOnDiscardButton);
         PlaceButton.onClick.AddListener (TaskOnPlaceButton);
         ReadyToCookButton.onClick.AddListener (TaskOnReadyToCookButton);
-        StartToCookButton.onClick.AddListener (TaskOnStartToCookButton);
+        StartToCookButton.onClick.AddListener (TaskOnCookButton);
+        ReadyToCraftButton.onClick.AddListener (TaskOnReadyToCraftButton);
+        StartToCraftButton.onClick.AddListener (TaskOnCraftButton);
+        PhoneButton.onClick.AddListener (TaskOnPhoneButton);
 
         //Initialize the day record information
         text = DayRecord.GetComponent<TextMeshProUGUI>();
@@ -128,19 +150,16 @@ public class UIManager : MonoBehaviour, IDataPersistence
     public void TaskOnClickSaveButton()
     {
         Debug.Log("Saving game data");
-        DataPersistenceManager.instance.SaveGame();
     }
 
     public void TaskOnClickLoadButton()
     {
         Debug.Log("Loading game data");
-        DataPersistenceManager.instance.LoadGame();
     }
 
     public void TaskOnClickNewGameButton()
     {
         Debug.Log("Initializing new game");
-        DataPersistenceManager.instance.NewGame();
     }
 
     public void TaskOnInventoryButton()
@@ -163,6 +182,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
             InventoryOpened = true;
 
             Debug.Log("The Inventory is opened");
+            lastOpenedPannel = "Inventory";
         }
 
         //check player freeze state
@@ -222,6 +242,15 @@ public class UIManager : MonoBehaviour, IDataPersistence
             Debug.Log("The Storage is closed");
         }
 
+        //close the crafting table pannel UI
+        if (CraftingTableOpened == true)
+        {
+            //close the inventory
+            CraftingTableAnimator.SetBool("IsOpen", false);
+            CraftingTableOpened = false;
+            Debug.Log("The crafting table is closed");
+        }
+
         //close the dialog pannel UI
         DialogManager.GetComponent<DialogManager>().EndDialog();
 
@@ -250,6 +279,22 @@ public class UIManager : MonoBehaviour, IDataPersistence
                 ControlModeButtonSprites[1];
             Debug.Log("Switched to Co-op control mode");
         }
+    }
+
+    public void TaskOnUtilizeButton()
+    {
+        //utilize the item
+        CurrentCharacter
+            .GetComponent<PlayerController>()
+            .Utilize(InventoryManager
+                .GetComponent<InventoryManager>()
+                .CurrentItem);
+
+        //close dialog window
+        DialogManager.GetComponent<DialogManager>().EndDialog();
+
+        //update UI
+        UIupdate();
     }
 
     public void TaskOnStoreButton()
@@ -299,27 +344,55 @@ public class UIManager : MonoBehaviour, IDataPersistence
         } // else if the current object is of type cooker
         else if (
             m_gameobject.GetComponent<ItemBehaviour>().type ==
-            ItemBehaviour.ItemType.Cooker
+            ItemBehaviour.ItemType.CraftingTable
         )
         //delete the food item in this item's food storage
         {
             for (
                 int i = 0;
-                i < m_gameobject.GetComponent<ItemBehaviour>().food.Count;
+                i < m_gameobject.GetComponent<CraftingTable>().food.Count;
                 i++
             )
             {
                 if (
-                    m_gameobject.GetComponent<ItemBehaviour>().food[i] ==
+                    m_gameobject.GetComponent<CraftingTable>().food[i] ==
                     InventoryManager
                         .GetComponent<InventoryManager>()
                         .CurrentItem
                 )
                 {
                     m_gameobject
-                        .GetComponent<ItemBehaviour>()
+                        .GetComponent<CraftingTable>()
                         .CancelCook(m_gameobject
-                            .GetComponent<ItemBehaviour>()
+                            .GetComponent<CraftingTable>()
+                            .food[i]);
+                    break;
+                }
+            }
+        } // else if the current object is of type crafting table
+        else if (
+            m_gameobject.GetComponent<ItemBehaviour>().type ==
+            ItemBehaviour.ItemType.Cooker
+        )
+        //delete the food item in this item's food storage
+        {
+            for (
+                int i = 0;
+                i < m_gameobject.GetComponent<Cooker>().food.Count;
+                i++
+            )
+            {
+                if (
+                    m_gameobject.GetComponent<Cooker>().food[i] ==
+                    InventoryManager
+                        .GetComponent<InventoryManager>()
+                        .CurrentItem
+                )
+                {
+                    m_gameobject
+                        .GetComponent<Cooker>()
+                        .CancelCook(m_gameobject
+                            .GetComponent<Cooker>()
                             .food[i]);
                     break;
                 }
@@ -328,7 +401,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
 
         //Update the food items in item behaviour
         InventoryManager.GetComponent<InventoryManager>().FoodItems =
-            m_gameobject.GetComponent<ItemBehaviour>().food;
+            m_gameobject.GetComponent<Cooker>().food;
         InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
 
         //Update storage items in item behaviour
@@ -449,14 +522,14 @@ public class UIManager : MonoBehaviour, IDataPersistence
         GameObject collidedItem =
             CurrentCharacter.GetComponent<PlayerController>().item;
         collidedItem
-            .GetComponent<ItemBehaviour>()
+            .GetComponent<Cooker>()
             .PrepareToCook(InventoryManager
                 .GetComponent<InventoryManager>()
                 .CurrentItem);
 
         //Update Cook items in item behaviour
         InventoryManager.GetComponent<InventoryManager>().FoodItems =
-            collidedItem.GetComponent<ItemBehaviour>().food;
+            collidedItem.GetComponent<Cooker>().food;
         InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
 
         Item item =
@@ -492,31 +565,117 @@ public class UIManager : MonoBehaviour, IDataPersistence
         DialogManager.GetComponent<DialogManager>().EndDialog();
 
         //place the food item inside cooker
-        Debug.Log("The cook button is pressed");
+        Debug.Log("The ready to cook button is pressed");
     }
 
-    public void TaskOnStartToCookButton()
+    public void TaskOnCookButton()
     {
         //add the current item into collided item's cook inventory
         GameObject collidedItem =
             CurrentCharacter.GetComponent<PlayerController>().item;
-        collidedItem.GetComponent<ItemBehaviour>().StartToCook();
+        collidedItem.GetComponent<Cooker>().StartToCook();
 
         //Update Cook items in item behaviour
         InventoryManager.GetComponent<InventoryManager>().FoodItems =
-            collidedItem.GetComponent<ItemBehaviour>().food;
+            collidedItem.GetComponent<Cooker>().food;
         InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
+
+        Debug.Log("The cook button is pressed");
     }
 
-    //Data save section: where all the data load and save methods are written
-    public void LoadData(GameData data)
+    //crafting table button tasks
+    public void TaskOnReadyToCraftButton()
     {
-        //CurrentCharacter.GetComponent<PlayerController>().health = data.health;
+        //add the current item into collided item's cook inventory
+        GameObject collidedItem =
+            CurrentCharacter.GetComponent<PlayerController>().item;
+        collidedItem
+            .GetComponent<Cooker>()
+            .PrepareToCook(InventoryManager
+                .GetComponent<InventoryManager>()
+                .CurrentItem);
+
+        //Update Cook items in item behaviour
+        InventoryManager.GetComponent<InventoryManager>().FoodItems =
+            collidedItem.GetComponent<CraftingTable>().food;
+        InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
+
+        Item item =
+            InventoryManager.GetComponent<InventoryManager>().CurrentItem;
+
+        //remove the item in the current character's inventory
+        for (
+            int i = 0;
+            i < CurrentCharacter.GetComponent<PlayerController>().Items.Count;
+            i++
+        )
+        {
+            if (
+                CurrentCharacter.GetComponent<PlayerController>().Items[i] ==
+                item
+            )
+            {
+                CurrentCharacter
+                    .GetComponent<PlayerController>()
+                    .Remove(CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .Items[i]);
+                break;
+            }
+        }
+
+        //update inventory items in Inventory UI
+        InventoryManager.GetComponent<InventoryManager>().Items =
+            CurrentCharacter.GetComponent<PlayerController>().Items;
+        InventoryManager.GetComponent<InventoryManager>().ListItems();
+
+        //close dialog window
+        DialogManager.GetComponent<DialogManager>().EndDialog();
+
+        //place the food item inside cooker
+        Debug.Log("The ready to craft button is pressed");
     }
 
-    public void SaveData(ref GameData data)
+    public void TaskOnCraftButton()
     {
-        //data.health = CurrentCharacter.GetComponent<PlayerController>().health;
+        //add the current item into collided item's cook inventory
+        GameObject collidedItem =
+            CurrentCharacter.GetComponent<PlayerController>().item;
+        collidedItem.GetComponent<CraftingTable>().StartToCook();
+
+        //Update Cook items in item behaviour
+        InventoryManager.GetComponent<InventoryManager>().FoodItems =
+            collidedItem.GetComponent<CraftingTable>().food;
+        InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
+
+        Debug.Log("The craft button is pressed");
+    }
+
+    public void TaskOnPhoneButton()
+    {
+        //pull the phone interface for interaction
+        //Update Inventory items in real times
+        InventoryManager.GetComponent<InventoryManager>().Items =
+            CurrentCharacter.GetComponent<PlayerController>().Items;
+        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        if (PhoneOpened == true)
+        {
+            //close the phone
+            PhoneAnimator.SetBool("IsOpen", false);
+            PhoneOpened = false;
+            Debug.Log("The Inventory is closed");
+        }
+        else
+        {
+            //open the phone
+            PhoneAnimator.SetBool("IsOpen", true);
+            PhoneOpened = true;
+
+            Debug.Log("The phone pannel is pulled");
+        }
+
+        //check player freeze state
+        PlayerFreezeState();
     }
 
     //Play Animation section: where all the method used to display animations
@@ -528,10 +687,6 @@ public class UIManager : MonoBehaviour, IDataPersistence
         PortalBackground.GetComponent<Animator>().SetBool("end", true);
         yield return new WaitForSeconds(transitionOutTime);
         PortalBackground.GetComponent<Animator>().SetBool("end", false);
-    }
-
-    public void PlaySleepAnimation()
-    {
     }
 
     //Update the UI information when an event occurs
@@ -556,13 +711,20 @@ public class UIManager : MonoBehaviour, IDataPersistence
         CurrentCharacter.GetComponent<PlayerController>().enabled = true;
         MainCamera.GetComponent<CameraController>().lookAt =
             CurrentCharacter.transform;
+
+        //update inventory pannel
+        InventoryManager.GetComponent<InventoryManager>().ListItems();
+
+        InventoryManager.GetComponent<InventoryManager>().ListFoodItems();
+
+        InventoryManager.GetComponent<InventoryManager>().ListStorageItems();
     }
 
     public void addOneDay()
     {
         DayIndex += 1;
-        text = DayRecord.GetComponent<TextMeshProUGUI>();
-        text.SetText("DAY" + DayIndex);
+
+        DayRecord.text = ("DAY" + DayIndex);
     }
 
     public void displayStoragePannel()
@@ -580,6 +742,7 @@ public class UIManager : MonoBehaviour, IDataPersistence
             StorageAnimator.SetBool("IsOpen", true);
             StoragePannelOpened = true;
             Debug.Log("The Storage is opened");
+            lastOpenedPannel = "Storage";
         }
 
         //check player freeze state
@@ -593,6 +756,8 @@ public class UIManager : MonoBehaviour, IDataPersistence
         DiscardButton.gameObject.SetActive(false);
         PlaceButton.gameObject.SetActive(false);
         ReadyToCookButton.gameObject.SetActive(false);
+        ReadyToCraftButton.gameObject.SetActive(false);
+        StartToCraftButton.gameObject.SetActive(false);
     }
 
     public void displayCookerPannel()
@@ -611,6 +776,30 @@ public class UIManager : MonoBehaviour, IDataPersistence
             CookerAnimator.SetBool("IsOpen", true);
             CookerPannelOpened = true;
             Debug.Log("The Storage is opened");
+            lastOpenedPannel = "Cooker";
+        }
+
+        //check player freeze state
+        PlayerFreezeState();
+    }
+
+    public void displayCraftingTable()
+    {
+        //display the cooker pannel UI
+        if (CraftingTableOpened == true)
+        {
+            //close the inventory
+            CraftingTableAnimator.SetBool("IsOpen", false);
+            CraftingTableOpened = false;
+            Debug.Log("The crafting table is closed");
+        }
+        else
+        {
+            //open the inventory
+            CraftingTableAnimator.SetBool("IsOpen", true);
+            CraftingTableOpened = true;
+            Debug.Log("The Crafting table is opened");
+            lastOpenedPannel = "CraftTable";
         }
 
         //check player freeze state
@@ -621,12 +810,15 @@ public class UIManager : MonoBehaviour, IDataPersistence
     public void PlayerFreezeState()
     {
         if (
-            StoragePannelOpened == true ||
-            CookerPannelOpened == true ||
-            InventoryOpened == true
+            StoragePannelOpened ||
+            CookerPannelOpened ||
+            InventoryOpened ||
+            PhoneOpened ||
+            CraftingTableOpened
         )
         {
             CurrentCharacter.GetComponent<PlayerController>().FreezeCharacter();
+            CurrentCharacter.GetComponent<Animator>().SetFloat("speed", 0);
         }
         else
         {

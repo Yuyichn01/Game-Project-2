@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class StatusManager : MonoBehaviour
 {
@@ -77,6 +79,14 @@ public class StatusManager : MonoBehaviour
 
     private float timer3;
 
+    [System.Serializable]
+    public class LevelInfo
+    {
+        public List<GameObject> Object;
+    }
+
+    public List<LevelInfo> levelInfo;
+
     public void Update()
     {
         // Calculate the rotation amount for this frame
@@ -96,45 +106,8 @@ public class StatusManager : MonoBehaviour
         timer2 += Time.deltaTime;
         timer3 += Time.deltaTime;
 
-        if (timer1 >= decreaseInterval)
-        {
-            Characters[0].GetComponent<PlayerController>().Starvation -=
-                decreaseRateStarvation;
-
-            // Ensure starvation doesn't go below 0
-            if (Characters[0].GetComponent<PlayerController>().Starvation < 0)
-            {
-                Characters[0].GetComponent<PlayerController>().Starvation = 0;
-            }
-            timer1 = 0f;
-        }
-
-        if (timer2 >= decreaseInterval)
-        {
-            Characters[1].GetComponent<PlayerController>().Starvation -=
-                decreaseRateStarvation;
-
-            // Ensure starvation doesn't go below 0
-            if (Characters[1].GetComponent<PlayerController>().Starvation < 0)
-            {
-                Characters[1].GetComponent<PlayerController>().Starvation = 0;
-            }
-            timer2 = 0f;
-        }
-
-        if (timer3 >= decreaseInterval)
-        {
-            Characters[2].GetComponent<PlayerController>().Starvation -=
-                decreaseRateStarvation;
-
-            // Ensure starvation doesn't go below 0
-            if (Characters[2].GetComponent<PlayerController>().Starvation < 0)
-            {
-                Characters[2].GetComponent<PlayerController>().Starvation = 0;
-            }
-            timer3 = 0f;
-        }
-
+        //decrease starvation
+        decreaseStarvation();
         UIManager.GetComponent<UIManager>().StarvationBar.value =
             UIManager
                 .GetComponent<UIManager>()
@@ -150,26 +123,9 @@ public class StatusManager : MonoBehaviour
         elapsedTime = InitialTime * 3600f;
 
         //allign the sky with hour
-        if (InitialTime > 6.0f && InitialTime < 9.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunrise);
-            StartCoroutine(LerpLight(graddientNightToSunrise, 10f));
-        }
-        else if (InitialTime > 8.0f && InitialTime < 19.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxDay);
-            StartCoroutine(LerpLight(graddientSunriseToDay, 10f));
-        }
-        else if (InitialTime > 18.0f && InitialTime < 23.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunset);
-            StartCoroutine(LerpLight(graddientDayToSunset, 10f));
-        }
-        else
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxNight);
-            StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
-        }
+        skyAllign();
+
+        SetLevel(UIManager.GetComponent<UIManager>().DayIndex);
     }
 
     void UpdateClockUI()
@@ -250,6 +206,105 @@ public class StatusManager : MonoBehaviour
             globalLight.color = lightGradient.Evaluate(i / time);
             RenderSettings.fogColor = globalLight.color;
             yield return null;
+        }
+    }
+
+    public IEnumerator skyAllign()
+    {
+        //allign sky with hour
+        if (InitialTime > 6.0f && InitialTime < 9.0f)
+        {
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunrise);
+            StartCoroutine(LerpLight(graddientNightToSunrise, 10f));
+        }
+        else if (InitialTime > 8.0f && InitialTime < 19.0f)
+        {
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxDay);
+            StartCoroutine(LerpLight(graddientSunriseToDay, 10f));
+        }
+        else if (InitialTime > 18.0f && InitialTime < 23.0f)
+        {
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunset);
+            StartCoroutine(LerpLight(graddientDayToSunset, 10f));
+        }
+        else
+        {
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxNight);
+            StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
+        }
+
+        yield return null;
+    }
+
+    public void decreaseStarvation()
+    {
+        if (timer1 >= decreaseInterval)
+        {
+            Characters[0].GetComponent<PlayerController>().Starvation -=
+                decreaseRateStarvation;
+
+            // Ensure starvation doesn't go below 0
+            if (Characters[0].GetComponent<PlayerController>().Starvation < 0)
+            {
+                Characters[0].GetComponent<PlayerController>().Starvation = 0;
+            }
+            timer1 = 0f;
+        }
+
+        if (timer2 >= decreaseInterval)
+        {
+            Characters[1].GetComponent<PlayerController>().Starvation -=
+                decreaseRateStarvation;
+
+            // Ensure starvation doesn't go below 0
+            if (Characters[1].GetComponent<PlayerController>().Starvation < 0)
+            {
+                Characters[1].GetComponent<PlayerController>().Starvation = 0;
+            }
+            timer2 = 0f;
+        }
+
+        if (timer3 >= decreaseInterval)
+        {
+            Characters[2].GetComponent<PlayerController>().Starvation -=
+                decreaseRateStarvation;
+
+            // Ensure starvation doesn't go below 0
+            if (Characters[2].GetComponent<PlayerController>().Starvation < 0)
+            {
+                Characters[2].GetComponent<PlayerController>().Starvation = 0;
+            }
+            timer3 = 0f;
+        }
+    }
+
+    public void SetLevel(int dayIndex)
+    {
+        // Validate that the dayIndex is within range
+        if (dayIndex < 0 || dayIndex > levelInfo.Count)
+        {
+            Debug
+                .LogError("Please make sure the level info section in status manager is not empty");
+            return;
+        }
+
+        // Disable all levels first
+        for (int i = 0; i < levelInfo.Count; i++)
+        {
+            SetLevelVisibility(levelInfo[i].Object, false);
+        }
+        Debug.Log("day index is" + dayIndex);
+
+        // Enable only the current level
+        LevelInfo currentLevel = levelInfo[dayIndex - 1];
+        SetLevelVisibility(currentLevel.Object, true);
+    }
+
+    private void SetLevelVisibility(List<GameObject> objects, bool isVisible)
+    {
+        foreach (GameObject obj in objects)
+        {
+            obj.SetActive (isVisible);
         }
     }
 }

@@ -9,43 +9,55 @@ public class MenuManager : MonoBehaviour
     // button variables
     public Button startButton;
 
-    public int SceneTransitionIndex1;
+    public int TransitionTo1;
 
-    public Button settingButton;
+    public Button loadButton;
 
-    public int SceneTransitionIndex2;
+    public int TransitionTo2;
 
     public Button exitButton;
 
-    // the menu sprite
-    public Image menuSprite;
+    // CanvasGroup for fade effect
+    public CanvasGroup canvasGroup;
 
-    // the background image
-    public Image background;
+    public float fadeDuration = 1f; // Duration of fade in/out
 
-    public GameObject sceneTransition;
+    private GameObject DataManager;
 
-    [SerializeField]
-    Animator transitionAnimator;
+    [Header("Manager section")]
+    public List<AudioClip> bgmClips; // List of BGM clips
+
+    public AudioSource BGMPlayer;
 
     void Start()
     {
-        sceneTransition.SetActive(false);
+        // Ensure the AudioSource is set to loop
+        BGMPlayer.loop = false;
+
+        // Start playing music
+        PlayRandomTrack();
+
+        DataManager = GameObject.FindWithTag("DataManager");
 
         // when button is clicked, do action
         Button btn1 = startButton.GetComponent<Button>();
-        btn1.onClick.AddListener(() => sceneTransition.SetActive(true));
+
         btn1
             .onClick
             .AddListener(() =>
-                StartCoroutine(LoadLevel(SceneTransitionIndex1)));
+            {
+                DataManager.GetComponent<DataManager>().CreateNewGameData(10);
+                StartCoroutine(LoadLevel(TransitionTo1));
+            });
 
-        Button btn2 = settingButton.GetComponent<Button>();
-        btn2.onClick.AddListener(() => sceneTransition.SetActive(true));
+        Button btn2 = loadButton.GetComponent<Button>();
+
         btn2
             .onClick
             .AddListener(() =>
-                StartCoroutine(LoadLevel(SceneTransitionIndex2)));
+            {
+                StartCoroutine(LoadLevel(TransitionTo2));
+            });
 
         Button btn3 = exitButton.GetComponent<Button>();
         btn3.onClick.AddListener(() => Application.Quit());
@@ -53,8 +65,30 @@ public class MenuManager : MonoBehaviour
 
     IEnumerator LoadLevel(int num)
     {
-        transitionAnimator.SetTrigger("start");
-        yield return new WaitForSeconds(1);
+        //slowly fade out scene
+        float timer = 0;
+
+        while (timer < fadeDuration)
+        {
+            timer += Time.deltaTime;
+            canvasGroup.alpha = 1 - (timer / fadeDuration); // Gradually make transparent
+            yield return null;
+        }
+
+        canvasGroup.alpha = 0;
+
+        //load game data
+        DataManager.GetComponent<DataManager>().LoadGameData();
         SceneManager.LoadScene (num);
+    }
+
+    void PlayRandomTrack()
+    {
+        if (bgmClips.Count == 0) return;
+
+        // Choose a random clip from the list
+        int randomIndex = Random.Range(0, bgmClips.Count);
+        BGMPlayer.clip = bgmClips[randomIndex];
+        BGMPlayer.Play();
     }
 }
