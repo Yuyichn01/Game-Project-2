@@ -7,6 +7,8 @@ public class PlayerGuide : MonoBehaviour
 {
     public TextMeshProUGUI uiText;
 
+    public List<string> instructions;
+
     private string currentInstruction;
 
     private bool isADKeyPressed = false;
@@ -20,7 +22,7 @@ public class PlayerGuide : MonoBehaviour
     void Start()
     {
         // Initial instruction
-        currentInstruction = "Press 'A' or 'D' to walk";
+        currentInstruction = instructions[0];
         DisplayInstruction();
     }
 
@@ -33,15 +35,14 @@ public class PlayerGuide : MonoBehaviour
         )
         {
             isADKeyPressed = true;
-            currentInstruction =
-                "Press 'E' to interact with objects or open the door";
+            currentInstruction = instructions[1];
             DisplayInstruction();
         } // Check for player input (E key)
         else if (isADKeyPressed && !isEKeyPressed && Input.GetKeyDown(KeyCode.E)
         )
         {
             isEKeyPressed = true;
-            currentInstruction = "Press 'W' or 'S' to go up and down stairs";
+            currentInstruction = instructions[2];
             DisplayInstruction();
         }
         else if (

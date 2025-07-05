@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /*this script generate building blocks and items
@@ -9,7 +10,7 @@ public class MapGenerator3 : MonoBehaviour
 {
     //variables for player
     [Header("Player section")]
-    public Transform player;
+    public Transform playerPosition;
 
     //spawndistance must greater than spawnnumber
     public int spawnDistance = 300;
@@ -120,7 +121,10 @@ public class MapGenerator3 : MonoBehaviour
     // spawn method for backN
     public void generateBG1()
     {
-        if (Vector3.Distance(player.position, endPosition1) < spawnDistance)
+        if (
+            Vector3.Distance(playerPosition.position, endPosition1) <
+            spawnDistance
+        )
         {
             Transform chosenLevelPart =
                 background1[Random.Range(0, background1.Count)];
@@ -133,7 +137,10 @@ public class MapGenerator3 : MonoBehaviour
     // spawn method for background2
     public void generateBG2()
     {
-        if (Vector3.Distance(player.position, endPosition2) < spawnDistance)
+        if (
+            Vector3.Distance(playerPosition.position, endPosition2) <
+            spawnDistance
+        )
         {
             Transform chosenLevelPart =
                 background2[Random.Range(0, background2.Count)];
@@ -146,7 +153,10 @@ public class MapGenerator3 : MonoBehaviour
     // spawn method for background3
     public void generateBG3()
     {
-        if (Vector3.Distance(player.position, endPosition3) < spawnDistance)
+        if (
+            Vector3.Distance(playerPosition.position, endPosition3) <
+            spawnDistance
+        )
         {
             Transform chosenLevelPart =
                 background3[Random.Range(0, background3.Count)];
@@ -192,7 +202,10 @@ public class MapGenerator3 : MonoBehaviour
                 break;
         }
 
-        if (Vector3.Distance(player.position, endPosition4) < spawnDistance)
+        if (
+            Vector3.Distance(playerPosition.position, endPosition4) <
+            spawnDistance
+        )
         {
             // generate the base ground
             Transform chosenLevelPart1 = Ground[Random.Range(0, Ground.Count)];

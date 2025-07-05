@@ -64,6 +64,13 @@ public class StatusManager : MonoBehaviour
     [SerializeField]
     public float timeScale = 2.0f;
 
+    [Header("Light section")]
+    public float fadeDuration = 20.0f; // Duration of the fade
+
+    private float startIntensity;
+
+    private float targetIntensity;
+
     [Header("Player value section")]
     public GameObject[] Characters;
 
@@ -79,6 +86,10 @@ public class StatusManager : MonoBehaviour
 
     private float timer3;
 
+    private int currentSceneIndex;
+
+    public bool isMenu = false;
+
     [System.Serializable]
     public class LevelInfo
     {
@@ -89,43 +100,62 @@ public class StatusManager : MonoBehaviour
 
     public void Update()
     {
-        // Calculate the rotation amount for this frame
-        float rotationAmount = rotationSpeed * Time.deltaTime;
+        if (rotationSpeed != 0)
+        {
+            // Calculate the rotation amount for this frame
+            float rotationAmount = rotationSpeed * Time.deltaTime;
 
-        // Apply the rotation to the light around the x-axis
-        globalLight.transform.Rotate(Vector3.up, rotationAmount, Space.World);
+            // Apply the rotation to the light around the x-axis
+            globalLight
+                .transform
+                .Rotate(Vector3.up, rotationAmount, Space.World);
+        }
 
         elapsedTime += Time.deltaTime * timeScale;
         elapsedTime %= timeInADay;
-        UpdateClockUI();
         OnHoursChange (hours);
-        UpdateDayIndex();
+        UpdateClockUI();
 
-        //decrase starvation and fatigue over time
-        timer1 += Time.deltaTime;
-        timer2 += Time.deltaTime;
-        timer3 += Time.deltaTime;
+        if (!isMenu)
+        {
+            //decrase starvation and fatigue over time
+            timer1 += Time.deltaTime;
+            timer2 += Time.deltaTime;
+            timer3 += Time.deltaTime;
 
-        //decrease starvation
-        decreaseStarvation();
-        UIManager.GetComponent<UIManager>().StarvationBar.value =
-            UIManager
-                .GetComponent<UIManager>()
-                .CurrentCharacter
-                .GetComponent<PlayerController>()
-                .Starvation;
+            UpdateDayIndex();
+
+            //decrease starvation
+            decreaseStarvation();
+            UIManager.GetComponent<UIManager>().StarvationBar.value =
+                UIManager
+                    .GetComponent<UIManager>()
+                    .CurrentCharacter
+                    .GetComponent<PlayerController>()
+                    .Starvation;
+        }
     }
 
     public void Start()
     {
-        //Initialize managers
-        UIManager = GameObject.FindWithTag("UIManager");
+        // Get the currently active scene
+        Scene currentScene = SceneManager.GetActiveScene();
+
+        // Get the index of the current scene
+        currentSceneIndex = currentScene.buildIndex;
+
         elapsedTime = InitialTime * 3600f;
 
         //allign the sky with hour
-        skyAllign();
+        skyAllign (InitialTime);
 
-        SetLevel(UIManager.GetComponent<UIManager>().DayIndex);
+        //If it current scene is not menu
+        if (!isMenu)
+        {
+            //Initialize UI managers
+            UIManager = GameObject.FindWithTag("UIManager");
+            SetLevel(UIManager.GetComponent<UIManager>().DayIndex);
+        }
     }
 
     void UpdateClockUI()
@@ -135,41 +165,76 @@ public class StatusManager : MonoBehaviour
         seconds =
             Mathf.FloorToInt((elapsedTime - hours * 3600f) - (minutes * 60f));
 
-        /*Debug
-            .Log("Hours is " +
-            hours +
-            " minutes is " +
-            minutes +
-            "seconds is " +
-            seconds);
-            */
         string clockString = string.Format("{0:00}:{1:00}", hours, minutes);
         clockText.text = clockString;
     }
 
     private void OnHoursChange(int hour)
     {
-        if (hour == 6)
+        if (hour == 6 && minutes == 0)
         {
             //initialize day count
             count = 0;
             StartCoroutine(LerpSkybox(skyboxNight, skyboxSunrise, 10f));
             StartCoroutine(LerpLight(graddientNightToSunrise, 10f));
+            LerpLightIntensity(0.7f, fadeDuration);
         }
-        if (hour == 8)
+        if (hour == 8 && minutes == 0)
         {
             StartCoroutine(LerpSkybox(skyboxSunrise, skyboxDay, 10f));
             StartCoroutine(LerpLight(graddientSunriseToDay, 10f));
+            LerpLightIntensity(1.0f, fadeDuration);
         }
-        if (hour == 18)
+        if (hour == 17 && minutes == 0)
         {
             StartCoroutine(LerpSkybox(skyboxDay, skyboxSunset, 10f));
             StartCoroutine(LerpLight(graddientDayToSunset, 10f));
+            LerpLightIntensity(0.5f, fadeDuration);
         }
-        if (hour == 22)
+        if (hour == 20 && minutes == 0)
         {
             StartCoroutine(LerpSkybox(skyboxSunset, skyboxNight, 10f));
             StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
+            LerpLightIntensity(0.1f, fadeDuration);
+        }
+    }
+
+    void skyAllign(float currentTime)
+    {
+        //skybox
+        if (
+            currentTime >= 6.0f && currentTime < 8.0f // Sunrise
+        )
+        {
+            RenderSettings.skybox.SetTexture("_Texture1", skyboxSunrise);
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunrise);
+            StartCoroutine(LerpLight(graddientNightToSunrise, 1f));
+            globalLight.intensity = 0.7f;
+        }
+        else if (
+            currentTime >= 8.0f && currentTime < 17.0f // Day
+        )
+        {
+            RenderSettings.skybox.SetTexture("_Texture1", skyboxDay);
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxDay);
+            StartCoroutine(LerpLight(graddientSunriseToDay, 1f));
+            globalLight.intensity = 1.0f;
+        }
+        else if (
+            currentTime >= 17.0f && currentTime < 20.0f // Sunset
+        )
+        {
+            RenderSettings.skybox.SetTexture("_Texture1", skyboxSunset);
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunset);
+            StartCoroutine(LerpLight(graddientDayToSunset, 1f));
+            globalLight.intensity = 0.5f;
+        } // Night (23:00 to 6:00)
+        else
+        {
+            RenderSettings.skybox.SetTexture("_Texture1", skyboxNight);
+            RenderSettings.skybox.SetTexture("_Texture2", skyboxNight);
+            StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
+            globalLight.intensity = 0.1f;
         }
     }
 
@@ -207,33 +272,6 @@ public class StatusManager : MonoBehaviour
             RenderSettings.fogColor = globalLight.color;
             yield return null;
         }
-    }
-
-    public IEnumerator skyAllign()
-    {
-        //allign sky with hour
-        if (InitialTime > 6.0f && InitialTime < 9.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunrise);
-            StartCoroutine(LerpLight(graddientNightToSunrise, 10f));
-        }
-        else if (InitialTime > 8.0f && InitialTime < 19.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxDay);
-            StartCoroutine(LerpLight(graddientSunriseToDay, 10f));
-        }
-        else if (InitialTime > 18.0f && InitialTime < 23.0f)
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxSunset);
-            StartCoroutine(LerpLight(graddientDayToSunset, 10f));
-        }
-        else
-        {
-            RenderSettings.skybox.SetTexture("_Texture2", skyboxNight);
-            StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
-        }
-
-        yield return null;
     }
 
     public void decreaseStarvation()
@@ -306,5 +344,29 @@ public class StatusManager : MonoBehaviour
         {
             obj.SetActive (isVisible);
         }
+    }
+
+    public void LerpLightIntensity(float targetIntensity, float fadeDuration)
+    {
+        startIntensity = globalLight.intensity; // Always start from the current intensity
+
+        StartCoroutine(FadeLight(targetIntensity, fadeDuration));
+    }
+
+    private IEnumerator FadeLight(float targetIntensity, float duration)
+    {
+        float timeElapsed = 0f;
+
+        while (timeElapsed < duration)
+        {
+            timeElapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(timeElapsed / duration);
+
+            globalLight.intensity =
+                Mathf.Lerp(startIntensity, targetIntensity, progress);
+            yield return null;
+        }
+
+        globalLight.intensity = targetIntensity; // Ensure exact target value
     }
 }

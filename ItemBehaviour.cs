@@ -21,16 +21,29 @@ public class ItemBehaviour : MonoBehaviour
         Escalator,
         CheckPoint,
         CraftingTable,
-        Weapon
+        Weapon,
+        Ladder
     }
 
     [Header("Interaction UI section")]
     // Changed from Image to SpriteRenderer for a 2D sprite image
     public SpriteRenderer interactionUI;
 
-    private float fadeDuration = 0.2f;
+    public float zoomSpeed = 1f;
 
-    private bool isFadingIn = true;
+    public float scaleAmount = 0.2f;
+
+    public float visibleAlpha = 1f; // When player is near
+
+    public float transparentAlpha = 0.5f; // When player is far
+
+    public float fadeDuration = 0.2f;
+
+    private Coroutine fadeCoroutine;
+
+    private Vector3 originalScale;
+
+    private bool zoomingOut = true;
 
     [Header("Dialog section")]
     public Dialog ItemDialog;
@@ -87,7 +100,11 @@ public class ItemBehaviour : MonoBehaviour
         DialogManager = GameObject.FindWithTag("DialogManager");
         InventoryManager = GameObject.FindWithTag("InventoryManager");
 
-        StartCoroutine(FadeImage());
+        if (interactionUI != null)
+        {
+            originalScale = interactionUI.transform.localScale;
+            interactionUI.enabled = false;
+        }
     }
 
     public void Add(Item item)
@@ -102,27 +119,27 @@ public class ItemBehaviour : MonoBehaviour
         Items.Remove (item);
     }
 
-    IEnumerator FadeImage()
+    IEnumerator ZoomLoop()
     {
         while (true)
         {
-            float alpha = isFadingIn ? 0f : 1f;
-            float targetAlpha = isFadingIn ? 1f : 0f;
+            float t = 0f;
+            Vector3 startScale = interactionUI.transform.localScale;
+            Vector3 targetScale =
+                zoomingOut
+                    ? originalScale + Vector3.one * scaleAmount
+                    : originalScale;
 
-            Color color = interactionUI.color;
-            while (Mathf.Abs(color.a - targetAlpha) > 0.01f)
+            while (t < 1f)
             {
-                color.a =
-                    Mathf
-                        .Lerp(color.a,
-                        targetAlpha,
-                        Time.deltaTime / fadeDuration);
-                interactionUI.color = color;
+                t += Time.deltaTime * zoomSpeed;
+                interactionUI.transform.localScale =
+                    Vector3.Lerp(startScale, targetScale, t);
                 yield return null;
             }
 
-            isFadingIn = !isFadingIn;
-            yield return new WaitForSeconds(0.01f);
+            zoomingOut = !zoomingOut;
+            yield return null;
         }
     }
 
@@ -171,6 +188,17 @@ public class ItemBehaviour : MonoBehaviour
                         .ListItems();
                     Debug.Log("This is a weapon");
                     break;
+                case ItemType.Ladder:
+                    CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .Add(ItemData);
+                    InventoryManager.GetComponent<InventoryManager>().Items =
+                        CurrentCharacter.GetComponent<PlayerController>().Items;
+                    InventoryManager
+                        .GetComponent<InventoryManager>()
+                        .ListItems();
+                    Debug.Log("this is a ladder");
+                    break;
             }
 
             Destroy(this.gameObject);
@@ -195,19 +223,33 @@ public class ItemBehaviour : MonoBehaviour
                         .GetComponent<UIManager>()
                         .PlayPortalAnimation());
 
-                    if (UIManager.GetComponent<UIManager>().isSingle == true)
+                    if (UIManager.GetComponent<UIManager>().isSingle)
                     {
-                        CurrentCharacter.transform.position =
-                            NextPortalPosition.position;
+                        Vector3 newPosition =
+                            new Vector3(NextPortalPosition.position.x,
+                                NextPortalPosition.position.y,
+                                NextPortalPosition.transform.position.z);
+                        CurrentCharacter.transform.position = newPosition;
                     }
                     else
                     {
-                        Player1.transform.position =
-                            NextPortalPosition.position;
-                        Player2.transform.position =
-                            NextPortalPosition.position;
-                        Player3.transform.position =
-                            NextPortalPosition.position;
+                        Vector3 newPosition =
+                            new Vector3(NextPortalPosition.position.x,
+                                NextPortalPosition.position.y,
+                                NextPortalPosition.transform.position.z + 0.1f);
+                        Player1.transform.position = newPosition;
+
+                        newPosition =
+                            new Vector3(NextPortalPosition.position.x,
+                                NextPortalPosition.position.y,
+                                NextPortalPosition.transform.position.z + 0.2f);
+                        Player2.transform.position = newPosition;
+
+                        newPosition =
+                            new Vector3(NextPortalPosition.position.x,
+                                NextPortalPosition.position.y,
+                                NextPortalPosition.transform.position.z + 0.3f);
+                        Player3.transform.position = newPosition;
                     }
 
                     UIManager
@@ -288,13 +330,28 @@ public class ItemBehaviour : MonoBehaviour
                     }
                     break;
                 case ItemType.Bed:
+                    CurrentCharacter
+                        .GetComponent<Animator>()
+                        .SetTrigger("Interact");
+                    UIManager.GetComponent<UIManager>().ResetDialogButtons();
+                    if (ItemDialog != null)
+                    {
+                        DialogManager
+                            .GetComponent<DialogManager>()
+                            .StartDialog(ItemDialog);
+                    }
+
+                    //add one day
                     UIManager.GetComponent<UIManager>().addOneDay();
+
+                    //reset the current time
+                    //allign sky
                     Debug.Log("this is a bed");
                     break;
                 case ItemType.Escalator:
-                    EscalatorController controller =
+                    /*EscalatorController controller =
                         GetComponentInChildren<EscalatorController>();
-                    controller.stepOnEscalator = true;
+                    controller.stepOnEscalator = true;*/
                     break;
                 case ItemType.CheckPoint:
                     SceneManager.LoadScene (CheckPointSceneIndex);
@@ -329,5 +386,64 @@ public class ItemBehaviour : MonoBehaviour
                     break;
             }
         }
+    }
+
+    void SetAlpha(float alpha)
+    {
+        Color color = interactionUI.color;
+        color.a = Mathf.Clamp01(alpha);
+        interactionUI.color = color;
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (
+            other.CompareTag("Player1") ||
+            other.CompareTag("Player2") ||
+            other.CompareTag("Player3")
+        )
+        {
+            interactionUI.enabled = true;
+            SetAlpha(0f); // set to transparent
+            StartFade(1f); // fade in
+            StartCoroutine(ZoomLoop());
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (
+            other.CompareTag("Player1") ||
+            other.CompareTag("Player2") ||
+            other.CompareTag("Player3")
+        )
+        {
+            StartFade(0f); // fade out
+            interactionUI.enabled = false;
+        }
+    }
+
+    void StartFade(float targetAlpha)
+    {
+        if (Mathf.Approximately(interactionUI.color.a, targetAlpha)) return;
+        if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
+        fadeCoroutine = StartCoroutine(FadeToAlpha(targetAlpha));
+    }
+
+    IEnumerator FadeToAlpha(float targetAlpha)
+    {
+        float startAlpha = interactionUI.color.a;
+        float time = 0f;
+
+        while (time < fadeDuration)
+        {
+            time += Time.deltaTime;
+            float newAlpha =
+                Mathf.Lerp(startAlpha, targetAlpha, time / fadeDuration);
+            SetAlpha (newAlpha);
+            yield return null;
+        }
+
+        fadeCoroutine = null;
     }
 }

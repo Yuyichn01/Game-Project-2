@@ -35,12 +35,22 @@ public class CameraController : MonoBehaviour
     // Variable to indicate if the camera is moving
     public bool isCameraMoving { get; private set; }
 
+    /*[Header("Tilt Settings")]
+    public float tiltAmount = 10f; // Maximum tilt angle in degrees
+
+    public float smoothSpeedTilt = 5f; // Smoothing factor
+
+    public float borderThreshold = 50f; // Distance from the screen border to trigger tilt
+
+    private float targetTiltX = 0f;
+
+    private float targetTiltY = 0f;*/
     void Start()
     {
-        // Initialize the last position and rotation with the camera's current values
+        /*// Initialize the last position and rotation with the camera's current values
         lastPosition = transform.position;
         lastRotation = transform.rotation;
-        isCameraMoving = false;
+        isCameraMoving = false;*/
     }
 
     void FixedUpdate()
@@ -69,7 +79,7 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    void Update()
+    /*void Update()
     {
         // Check if the camera's position or rotation has changed
         if (
@@ -87,6 +97,34 @@ public class CameraController : MonoBehaviour
         {
             isCameraMoving = false;
         }
+        Vector3 mousePosition = Input.mousePosition;
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+
+        // Calculate horizontal tilt (opposite of previous logic)
+        if (mousePosition.x < borderThreshold)
+            targetTiltY = -tiltAmount; // Look left
+        else if (mousePosition.x > screenWidth - borderThreshold)
+            targetTiltY = tiltAmount; // Look right
+        else
+            targetTiltY = 0f; // Reset
+
+        // Calculate vertical tilt (opposite of previous logic)
+        if (mousePosition.y < borderThreshold)
+            targetTiltX = tiltAmount; // Look down
+        else if (mousePosition.y > screenHeight - borderThreshold)
+            targetTiltX = -tiltAmount; // Look up
+        else
+            targetTiltX = 0f; // Reset
+
+        // Smoothly rotate the camera
+        Quaternion targetRotation =
+            Quaternion.Euler(targetTiltX, targetTiltY, 0f);
+        transform.rotation =
+            Quaternion
+                .Lerp(transform.rotation,
+                targetRotation,
+                Time.deltaTime * smoothSpeedTilt);
     }
 
     // Optional: Method to get the current movement state
@@ -94,4 +132,5 @@ public class CameraController : MonoBehaviour
     {
         return isCameraMoving;
     }
+   */
 }

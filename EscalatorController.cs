@@ -5,8 +5,6 @@ public class EscalatorController : MonoBehaviour
 {
     public bool startEscalator = false;
 
-    public PolygonCollider2D polygonCollider2D;
-
     public bool stepOnEscalator = false;
 
     private Rigidbody2D userRb;
@@ -58,17 +56,6 @@ public class EscalatorController : MonoBehaviour
             {
                 MoveStep(steps[i], i);
             }
-        }
-
-        if (stepOnEscalator == true)
-        {
-            //enable collider
-            polygonCollider2D.enabled = true;
-        }
-        else
-        {
-            //disable collider
-            polygonCollider2D.enabled = false;
         }
     }
 

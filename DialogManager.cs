@@ -48,6 +48,8 @@ public class DialogManager : MonoBehaviour
 
     private bool withPortrait = true;
 
+    private Dialog currentDialog;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -101,6 +103,17 @@ public class DialogManager : MonoBehaviour
     public void StartDialog(Dialog dialog)
     {
         timeScaletmp = StatusManager.GetComponent<StatusManager>().timeScale;
+        Debug.Log("Current time scale is" + timeScaletmp);
+
+        //set the current dialog to this dialog
+        currentDialog = dialog;
+
+        //freeze character movement
+        UIManager
+            .GetComponent<UIManager>()
+            .CurrentCharacter
+            .GetComponent<PlayerController>()
+            .FreezeCharacter();
 
         //if portrait is allowed to display
         if (withPortrait)
@@ -109,13 +122,6 @@ public class DialogManager : MonoBehaviour
             ResetDialogPortrait();
             UpdatePortrait();
         }
-
-        //freeze character movement
-        UIManager
-            .GetComponent<UIManager>()
-            .CurrentCharacter
-            .GetComponent<PlayerController>()
-            .FreezeCharacter();
 
         //start to display dialog animation
         DialogAnimator.SetBool("IsOpen", true);
@@ -156,31 +162,31 @@ public class DialogManager : MonoBehaviour
     //end the conversation
     public void EndDialog()
     {
-        StatusManager.GetComponent<StatusManager>().timeScale = timeScaletmp;
+        //reset the time scale to original
+        if (currentDialog != null)
+        {
+            if (currentDialog.dialogBackground != null)
+            {
+                StatusManager.GetComponent<StatusManager>().timeScale =
+                    timeScaletmp;
 
-        //pull out the Dailog window
+                //reset and close dialog background
+                StartCoroutine(CloseDialogBackground());
+            }
+        }
+
+        //pull out the Dialog window
         DialogAnimator.SetBool("IsOpen", false);
         for (int i = 0; i < DialogPortrait.Length; i++)
         {
             DialogPortrait[i].GetComponent<Animator>().SetBool("IsOpen", false);
         }
 
-        //reset and close dialog background
-        StartCoroutine(CloseDialogBackground());
-
-        //unfreeze character movement conditionally
-        if (
-            !UIManager.GetComponent<UIManager>().StoragePannelOpened &&
-            !UIManager.GetComponent<UIManager>().CookerPannelOpened &&
-            !UIManager.GetComponent<UIManager>().CraftingTableOpened
-        )
-        {
-            UIManager
-                .GetComponent<UIManager>()
-                .CurrentCharacter
-                .GetComponent<PlayerController>()
-                .UnfreezeCharacter();
-        }
+        UIManager
+            .GetComponent<UIManager>()
+            .CurrentCharacter
+            .GetComponent<PlayerController>()
+            .UnfreezeCharacter();
 
         Debug.Log("End of conversation");
 
@@ -211,12 +217,32 @@ public class DialogManager : MonoBehaviour
     //Align portrait
     public void UpdatePortrait()
     {
-        DialogPortrait[0].GetComponent<Image>().sprite =
-            UIManager
-                .GetComponent<UIManager>()
-                .CurrentCharacter
-                .GetComponent<PlayerController>()
-                .CharacterDialogSprite;
+        // Add the object to the picked-up Items list
+        switch (currentDialog.mood)
+        {
+            case Dialog.Mood.Happy:
+                DialogPortrait[0].GetComponent<Image>().sprite =
+                    UIManager
+                        .GetComponent<UIManager>()
+                        .CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .CharacterDialogSprite;
+                break;
+            case Dialog.Mood.Normal:
+                DialogPortrait[0].GetComponent<Image>().sprite =
+                    UIManager
+                        .GetComponent<UIManager>()
+                        .CurrentCharacter
+                        .GetComponent<PlayerController>()
+                        .CharacterDialogNormal;
+                break;
+        }
+
+        if (currentDialog.Portrait != null)
+        {
+            DialogPortrait[1].GetComponent<Image>().sprite =
+                currentDialog.Portrait;
+        }
 
         for (int i = 0; i < DialogPortrait.Length; i++)
         {

@@ -10,5 +10,16 @@ public class Dialog
 
     public Sprite dialogBackground;
 
+    public Sprite Portrait;
+
     public AudioSource dialogMusic;
+
+    public enum Mood
+    {
+        Normal,
+        Happy,
+        Sad
+    }
+
+    public Mood mood;
 }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /*Attach to Canvas
@@ -42,7 +43,9 @@ public class UIManager : MonoBehaviour
 
     public Button StartToCraftButton;
 
-    public CameraController Camera;
+    public Button MapButton;
+
+    public Button ToGoButton;
 
     private int switchCount = 1;
 
@@ -97,20 +100,29 @@ public class UIManager : MonoBehaviour
     [Header("Storage section")]
     public Animator StorageAnimator;
 
-    public bool StoragePannelOpened = false;
+    private bool StoragePannelOpened = false;
 
     [Header("Cooker section")]
     public Animator CookerAnimator;
 
-    public bool CookerPannelOpened = false;
+    private bool CookerPannelOpened = false;
 
     [Header("Phone section")]
     public Animator PhoneAnimator;
 
+    public List<GameObject> phonePannels;
+
+    [Header("Map section")]
+    public GameObject MapPannel;
+
+    private int nextPlace = 0;
+
+    private bool MapOpened = false;
+
     [Header("Crafting table section")]
     public Animator CraftingTableAnimator;
 
-    public bool CraftingTableOpened = false;
+    private bool CraftingTableOpened = false;
 
     // Start is called before the first frame update
     public void Start()
@@ -136,6 +148,8 @@ public class UIManager : MonoBehaviour
         ReadyToCraftButton.onClick.AddListener (TaskOnReadyToCraftButton);
         StartToCraftButton.onClick.AddListener (TaskOnCraftButton);
         PhoneButton.onClick.AddListener (TaskOnPhoneButton);
+        MapButton.onClick.AddListener (TaskOnMapButton);
+        ToGoButton.onClick.AddListener (TaskOnToGoButton);
 
         //Initialize the day record information
         text = DayRecord.GetComponent<TextMeshProUGUI>();
@@ -144,6 +158,11 @@ public class UIManager : MonoBehaviour
         //Initialize to the first character
         CurrentCharacter = Characters[0];
         UIupdate();
+    }
+
+    public void SetNextPlace(int num)
+    {
+        nextPlace = num;
     }
 
     //Buttons section: where all the button control methods are written
@@ -164,33 +183,37 @@ public class UIManager : MonoBehaviour
 
     public void TaskOnInventoryButton()
     {
-        //Update Inventory items in real times
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
-        if (InventoryOpened == true)
+        if (CurrentCharacter.GetComponent<PlayerController>().isGrounded())
         {
-            //close the inventory
-            InventoryAnimator.SetBool("IsOpen", false);
-            InventoryOpened = false;
-            Debug.Log("The Inventory is closed");
-        }
-        else
-        {
-            //open the inventory
-            InventoryAnimator.SetBool("IsOpen", true);
-            InventoryOpened = true;
+            updateInventoryUI();
+            if (InventoryOpened == true)
+            {
+                //close the inventory
+                InventoryAnimator.SetBool("IsOpen", false);
+                InventoryOpened = false;
+                Debug.Log("The Inventory is closed");
+            }
+            else
+            {
+                closeAllPannels();
 
-            Debug.Log("The Inventory is opened");
-            lastOpenedPannel = "Inventory";
-        }
+                //open the inventory
+                InventoryAnimator.SetBool("IsOpen", true);
+                InventoryOpened = true;
 
-        //check player freeze state
-        PlayerFreezeState();
+                Debug.Log("The Inventory is opened");
+                lastOpenedPannel = "Inventory";
+            }
+
+            //check player freeze state
+            PlayerFreezeState();
+        }
     }
 
     public void TaskOnSwitchButton()
     {
+        closeAllPannels();
+
         //enable all character animator and position constraints
         for (int i = 0; i < Characters.Length; i++)
         {
@@ -219,40 +242,10 @@ public class UIManager : MonoBehaviour
                 .GetComponent<PlayerController>()
                 .CharacterMiniSprite;
 
-        //Update Inventory items
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        updateInventoryUI();
 
-        //close the cooker pannel UI
-        if (CookerPannelOpened == true)
-        {
-            //close the inventory
-            CookerAnimator.SetBool("IsOpen", false);
-            CookerPannelOpened = false;
-            Debug.Log("The Storage is closed");
-        }
-
-        //close the storage pannel UI
-        if (StoragePannelOpened == true)
-        {
-            //close the inventory
-            StorageAnimator.SetBool("IsOpen", false);
-            StoragePannelOpened = false;
-            Debug.Log("The Storage is closed");
-        }
-
-        //close the crafting table pannel UI
-        if (CraftingTableOpened == true)
-        {
-            //close the inventory
-            CraftingTableAnimator.SetBool("IsOpen", false);
-            CraftingTableOpened = false;
-            Debug.Log("The crafting table is closed");
-        }
-
-        //close the dialog pannel UI
-        DialogManager.GetComponent<DialogManager>().EndDialog();
+        //close all opned pannels
+        closeAllPannels();
 
         //check player freeze state
         PlayerFreezeState();
@@ -304,10 +297,7 @@ public class UIManager : MonoBehaviour
             .GetComponent<PlayerController>()
             .Add(InventoryManager.GetComponent<InventoryManager>().CurrentItem);
 
-        //update item in Inventory manager
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        updateInventoryUI();
 
         //remove the item from orginal item behaviour
         GameObject m_gameobject =
@@ -453,10 +443,7 @@ public class UIManager : MonoBehaviour
                 }
             }
 
-            //update inventory items in Inventory UI
-            InventoryManager.GetComponent<InventoryManager>().Items =
-                CurrentCharacter.GetComponent<PlayerController>().Items;
-            InventoryManager.GetComponent<InventoryManager>().ListItems();
+            updateInventoryUI();
 
             //respawn the item instance
             GameObject objectToDiscard = Instantiate(item.objectInstance);
@@ -501,10 +488,7 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        //update inventory items in Inventory UI
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        updateInventoryUI();
 
         //Update Storage items in item behaviour
         InventoryManager.GetComponent<InventoryManager>().StorageItems =
@@ -556,10 +540,7 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        //update inventory items in Inventory UI
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        updateInventoryUI();
 
         //close dialog window
         DialogManager.GetComponent<DialogManager>().EndDialog();
@@ -624,10 +605,7 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        //update inventory items in Inventory UI
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
+        updateInventoryUI();
 
         //close dialog window
         DialogManager.GetComponent<DialogManager>().EndDialog();
@@ -653,29 +631,89 @@ public class UIManager : MonoBehaviour
 
     public void TaskOnPhoneButton()
     {
-        //pull the phone interface for interaction
-        //Update Inventory items in real times
-        InventoryManager.GetComponent<InventoryManager>().Items =
-            CurrentCharacter.GetComponent<PlayerController>().Items;
-        InventoryManager.GetComponent<InventoryManager>().ListItems();
-        if (PhoneOpened == true)
+        if (CurrentCharacter.GetComponent<PlayerController>().isGrounded())
         {
-            //close the phone
-            PhoneAnimator.SetBool("IsOpen", false);
-            PhoneOpened = false;
-            Debug.Log("The Inventory is closed");
+            if (PhoneOpened == true)
+            {
+                //close the phone
+                PhoneAnimator.SetBool("IsOpen", false);
+                PhoneOpened = false;
+                Debug.Log("The Inventory is closed");
+            }
+            else
+            {
+                closeAllPannels();
+                for (int i = 0; i < Characters.Length; i++)
+                {
+                    if (CurrentCharacter == Characters[i])
+                    {
+                        if (
+                            phonePannels[i] != null &&
+                            !phonePannels[i].activeSelf
+                        )
+                        {
+                            // Activate the current character's phone panel
+                            phonePannels[i].SetActive(true);
+                        }
+                    }
+                    else
+                    {
+                        // Deactivate other characters' phone panels
+                        if (
+                            phonePannels[i] != null &&
+                            phonePannels[i].activeSelf
+                        )
+                        {
+                            phonePannels[i].SetActive(false);
+                        }
+                    }
+                }
+
+                //open the phone
+                PhoneAnimator.SetBool("IsOpen", true);
+                PhoneOpened = true;
+
+                Debug.Log("The phone pannel is pulled");
+            }
+
+            //check player freeze state
+            PlayerFreezeState();
+        }
+    }
+
+    public void TaskOnMapButton()
+    {
+        //display the cooker pannel UI
+        if (MapOpened)
+        {
+            //close the map
+            MapPannel.GetComponent<AppOpenAnimation>().CloseApp();
+            MapOpened = false;
+            Debug.Log("The map pannel is closed");
         }
         else
         {
-            //open the phone
-            PhoneAnimator.SetBool("IsOpen", true);
-            PhoneOpened = true;
+            MapOpened = true;
+            lastOpenedPannel = "Map";
 
-            Debug.Log("The phone pannel is pulled");
+            //open the map
+            MapPannel.GetComponent<AppOpenAnimation>().OpenApp();
+            Debug.Log("The map pannel is pulled");
         }
+
+        closeAllPannels();
 
         //check player freeze state
         PlayerFreezeState();
+    }
+
+    public void TaskOnToGoButton()
+    {
+        //teleport to the designated scene
+        if (nextPlace != 0)
+        {
+            SceneManager.LoadScene (nextPlace);
+        }
     }
 
     //Play Animation section: where all the method used to display animations
@@ -720,6 +758,13 @@ public class UIManager : MonoBehaviour
         InventoryManager.GetComponent<InventoryManager>().ListStorageItems();
     }
 
+    public void updateInventoryUI()
+    {
+        InventoryManager.GetComponent<InventoryManager>().Items =
+            CurrentCharacter.GetComponent<PlayerController>().Items;
+        InventoryManager.GetComponent<InventoryManager>().ListItems();
+    }
+
     public void addOneDay()
     {
         DayIndex += 1;
@@ -731,14 +776,16 @@ public class UIManager : MonoBehaviour
     {
         if (StoragePannelOpened == true)
         {
-            //close the inventory
+            //close the storage
             StorageAnimator.SetBool("IsOpen", false);
             StoragePannelOpened = false;
             Debug.Log("The Storage is closed");
         }
         else
         {
-            //open the inventory
+            closeAllPannels();
+
+            //open the storage
             StorageAnimator.SetBool("IsOpen", true);
             StoragePannelOpened = true;
             Debug.Log("The Storage is opened");
@@ -747,6 +794,41 @@ public class UIManager : MonoBehaviour
 
         //check player freeze state
         PlayerFreezeState();
+    }
+
+    public void closeAllPannels()
+    {
+        //close the inventory
+        if (InventoryOpened)
+        {
+            InventoryAnimator.SetBool("IsOpen", false);
+            InventoryOpened = false;
+        }
+        if (StoragePannelOpened)
+        {
+            //close the storage
+            StorageAnimator.SetBool("IsOpen", false);
+            StoragePannelOpened = false;
+        }
+        if (PhoneOpened)
+        {
+            //close the phone
+            PhoneAnimator.SetBool("IsOpen", false);
+            PhoneOpened = false;
+        }
+
+        //close the crafting table pannel UI
+        if (CraftingTableOpened)
+        {
+            //close the crafting table
+            CraftingTableAnimator.SetBool("IsOpen", false);
+            CraftingTableOpened = false;
+        }
+
+        //close the dialog pannel UI
+        DialogManager.GetComponent<DialogManager>().EndDialog();
+
+        Debug.Log("All pannels are closed");
     }
 
     public void ResetDialogButtons()
@@ -758,6 +840,7 @@ public class UIManager : MonoBehaviour
         ReadyToCookButton.gameObject.SetActive(false);
         ReadyToCraftButton.gameObject.SetActive(false);
         StartToCraftButton.gameObject.SetActive(false);
+        ToGoButton.gameObject.SetActive(false);
     }
 
     public void displayCookerPannel()
@@ -814,7 +897,8 @@ public class UIManager : MonoBehaviour
             CookerPannelOpened ||
             InventoryOpened ||
             PhoneOpened ||
-            CraftingTableOpened
+            CraftingTableOpened ||
+            MapOpened
         )
         {
             CurrentCharacter.GetComponent<PlayerController>().FreezeCharacter();

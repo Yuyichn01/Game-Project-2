@@ -29,6 +29,8 @@ public class MenuManager : MonoBehaviour
 
     public AudioSource BGMPlayer;
 
+    private bool isButtonClicked = false; // Flag to disable buttons after one is clicked
+
     void Start()
     {
         // Ensure the AudioSource is set to loop
@@ -40,32 +42,51 @@ public class MenuManager : MonoBehaviour
         DataManager = GameObject.FindWithTag("DataManager");
 
         // when button is clicked, do action
-        Button btn1 = startButton.GetComponent<Button>();
+        startButton.onClick.AddListener(() => OnStartButtonClicked());
+        loadButton.onClick.AddListener(() => OnLoadButtonClicked());
+        exitButton.onClick.AddListener(() => OnExitButtonClicked());
+    }
 
-        btn1
-            .onClick
-            .AddListener(() =>
-            {
-                DataManager.GetComponent<DataManager>().CreateNewGameData(10);
-                StartCoroutine(LoadLevel(TransitionTo1));
-            });
+    void OnStartButtonClicked()
+    {
+        if (isButtonClicked) return;
+        isButtonClicked = true;
 
-        Button btn2 = loadButton.GetComponent<Button>();
+        startButton.interactable = false;
+        loadButton.interactable = false;
+        exitButton.interactable = false;
 
-        btn2
-            .onClick
-            .AddListener(() =>
-            {
-                StartCoroutine(LoadLevel(TransitionTo2));
-            });
+        DataManager.GetComponent<DataManager>().CreateNewGameData(10);
+        StartCoroutine(LoadLevel(TransitionTo1));
+    }
 
-        Button btn3 = exitButton.GetComponent<Button>();
-        btn3.onClick.AddListener(() => Application.Quit());
+    void OnLoadButtonClicked()
+    {
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+
+        startButton.interactable = false;
+        loadButton.interactable = false;
+        exitButton.interactable = false;
+
+        StartCoroutine(LoadLevel(TransitionTo2));
+    }
+
+    void OnExitButtonClicked()
+    {
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+
+        startButton.interactable = false;
+        loadButton.interactable = false;
+        exitButton.interactable = false;
+
+        Application.Quit();
     }
 
     IEnumerator LoadLevel(int num)
     {
-        //slowly fade out scene
+        // slowly fade out scene
         float timer = 0;
 
         while (timer < fadeDuration)
@@ -77,7 +98,7 @@ public class MenuManager : MonoBehaviour
 
         canvasGroup.alpha = 0;
 
-        //load game data
+        // load game data
         DataManager.GetComponent<DataManager>().LoadGameData();
         SceneManager.LoadScene (num);
     }

@@ -18,6 +18,8 @@ public class PlayerController : MonoBehaviour
     [Header("Value Section")]
     public float runSpeed;
 
+    public float MouseRunSpeed;
+
     private float speed;
 
     public float climbSpeed;
@@ -40,16 +42,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float m_JumpForce = 400f; // Amount of force added when the player jumps.
 
-    [Range(0, 1)]
-    [SerializeField]
-    private float m_CrouchSpeed = .36f; // Amount of maxSpeed applied to crouching movement. 1 = 100%
-
-    [Range(0, .3f)]
     [SerializeField]
     private float m_MovementSmoothing = .05f; // How much to smooth out the movement
-
-    [SerializeField]
-    private bool m_AirControl = false; // Whether or not a player can steer while jumping;
 
     [SerializeField]
     private LayerMask m_WhatIsGround; // A mask determining what is ground to the character
@@ -59,9 +53,6 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField]
     private Transform m_CeilingCheck; // A position marking where to check for ceilings
-
-    [SerializeField]
-    private Collider2D m_CrouchDisableCollider; // A collider that will be disabled when crouching
 
     const float k_GroundedRadius = .2f; // Radius of the overlap circle to determine if grounded
 
@@ -83,6 +74,14 @@ public class PlayerController : MonoBehaviour
     // the detected item
     public GameObject item;
 
+    private Vector2 targetPosition;
+
+    public float groundCheckDistance = 0.1f;
+
+    private bool isMoving = false;
+
+    private Vector3 targetPos;
+
     [Header("Events")]
     [Space]
     public UnityEvent OnLandEvent;
@@ -91,8 +90,6 @@ public class PlayerController : MonoBehaviour
     public class BoolEvent : UnityEvent<bool> { }
 
     public BoolEvent OnCrouchEvent;
-
-    private bool m_wasCrouching = false;
 
     [Header("State Section")]
     // the collider of the detected item
@@ -112,6 +109,8 @@ public class PlayerController : MonoBehaviour
     public Sprite CharacterMiniSprite;
 
     public Sprite CharacterDialogSprite;
+
+    public Sprite CharacterDialogNormal;
 
     [Header("Item Section")]
     public List<Item> Items = new List<Item>();
@@ -156,13 +155,11 @@ public class PlayerController : MonoBehaviour
 
     public float followSpeed = 5.0f; // Speed at which followers move
 
+    private System.Random rd = new System.Random();
+
     private void Awake()
     {
         m_Rigidbody2D = GetComponent<Rigidbody2D>();
-
-        if (OnLandEvent == null) OnLandEvent = new UnityEvent();
-
-        if (OnCrouchEvent == null) OnCrouchEvent = new BoolEvent();
     }
 
     public void Start()
@@ -187,6 +184,21 @@ public class PlayerController : MonoBehaviour
 
     public void Update()
     {
+        // 点击鼠标
+        if (Input.GetMouseButtonDown(0))
+        {
+            Vector3 mouseScreenPos = Input.mousePosition;
+            mouseScreenPos.z = Mathf.Abs(Camera.main.transform.position.z); // 关键：补 z 深度
+
+            Vector3 worldPos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
+            targetPos =
+                new Vector3(worldPos.x, worldPos.y, transform.position.z);
+
+            Debug.Log("Target Position: " + targetPos);
+
+            isMoving = true; // 启动移动
+        }
+
         // always update those variable
         horizontal = Input.GetAxisRaw("Horizontal") * runSpeed;
         vertical = Input.GetAxisRaw("Vertical") * runSpeed;
@@ -197,7 +209,7 @@ public class PlayerController : MonoBehaviour
             isJumping = true;
         }
 
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(1))
         {
             attack();
         }
@@ -220,8 +232,6 @@ public class PlayerController : MonoBehaviour
         bool wasGrounded = m_Grounded;
         m_Grounded = false;
 
-        // The player is grounded if a circlecast to the groundcheck position hits anything designated as ground
-        // This can be done using layers instead but Sample Assets will not overwrite your project settings.
         Collider2D[] colliders =
             Physics2D
                 .OverlapCircleAll(m_GroundCheck.position,
@@ -236,7 +246,30 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        if (isMoving)
+        {
+            // 计算方向
+            Vector3 direction = (targetPos - transform.position).normalized;
+
+            // 平滑移动（使用 Rigidbody2D）
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            rb.velocity =
+                new Vector2(direction.x * MouseRunSpeed, rb.velocity.y);
+
+            // 到达目标 X 位置后停止
+            if (Mathf.Abs(transform.position.x - targetPos.x) < 0.1f)
+            {
+                rb.velocity = new Vector2(0, rb.velocity.y);
+                isMoving = false;
+            }
+        }
+
         UpdateFollowers();
+    }
+
+    public bool isGrounded()
+    {
+        return m_Grounded;
     }
 
     public void Move(float move, bool crouch, bool jump)
@@ -257,37 +290,8 @@ public class PlayerController : MonoBehaviour
         }
 
         // Only control the player if grounded or airControl is turned on
-        if (m_Grounded || m_AirControl)
+        if (m_Grounded)
         {
-            // If crouching
-            if (crouch)
-            {
-                if (!m_wasCrouching)
-                {
-                    m_wasCrouching = true;
-                    OnCrouchEvent.Invoke(true);
-                }
-
-                // Reduce the speed by the crouchSpeed multiplier
-                move *= m_CrouchSpeed;
-
-                // Disable one of the colliders when crouching
-                if (m_CrouchDisableCollider != null)
-                    m_CrouchDisableCollider.enabled = false;
-            }
-            else
-            {
-                // Enable the collider when not crouching
-                if (m_CrouchDisableCollider != null)
-                    m_CrouchDisableCollider.enabled = true;
-
-                if (m_wasCrouching)
-                {
-                    m_wasCrouching = false;
-                    OnCrouchEvent.Invoke(false);
-                }
-            }
-
             // Move the character by finding the target velocity
             Vector3 targetVelocity =
                 new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
@@ -490,7 +494,7 @@ public class PlayerController : MonoBehaviour
                 }
         }
 
-        if (UIManager.GetComponent<UIManager>().isSingle == true)
+        if (UIManager.GetComponent<UIManager>().isSingle)
         {
             // Move only the current character
             GameObject CurrentCharacter =
@@ -500,25 +504,34 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Teleport all characters (current character and followers) to the next door
-            GameObject CurrentCharacter =
-                UIManager.GetComponent<UIManager>().CurrentCharacter;
-
-            // Move the current character
-            CurrentCharacter.transform.position =
-                closestDoorUp.transform.position;
-
-            // Move all followers to the door position
-            PlayerController playerController =
-                CurrentCharacter.GetComponent<PlayerController>();
-            if (playerController != null)
+            if (closestDoorUp != targetItem)
             {
-                foreach (GameObject follower in playerController.followers)
+                // Teleport all characters (current character and followers) to the next door
+                GameObject CurrentCharacter =
+                    UIManager.GetComponent<UIManager>().CurrentCharacter;
+
+                // Move the current character
+                CurrentCharacter.transform.position =
+                    closestDoorUp.transform.position;
+
+                // Move all followers to the door position
+                PlayerController playerController =
+                    CurrentCharacter.GetComponent<PlayerController>();
+                if (playerController != null)
                 {
-                    if (follower != null)
+                    float offsetZ = 0.01f; // Adjust the spacing between followers
+                    int index = 1; // Track follower index
+
+                    foreach (GameObject follower in playerController.followers)
                     {
-                        follower.transform.position =
-                            closestDoorUp.transform.position;
+                        if (follower != null)
+                        {
+                            Vector3 newPosition =
+                                closestDoorUp.transform.position;
+                            newPosition.z += index * offsetZ; // Spread followers along X-axis
+                            follower.transform.position = newPosition;
+                            index++; // Increment index for the next follower
+                        }
                     }
                 }
             }
@@ -585,25 +598,34 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Teleport all characters (current character and followers) to the next door
-            GameObject CurrentCharacter =
-                UIManager.GetComponent<UIManager>().CurrentCharacter;
-
-            // Move the current character
-            CurrentCharacter.transform.position =
-                closestDoorDown.transform.position;
-
-            // Move all followers to the door position
-            PlayerController playerController =
-                CurrentCharacter.GetComponent<PlayerController>();
-            if (playerController != null)
+            if (closestDoorDown != targetItem)
             {
-                foreach (GameObject follower in playerController.followers)
+                // Teleport all characters (current character and followers) to the next door
+                GameObject CurrentCharacter =
+                    UIManager.GetComponent<UIManager>().CurrentCharacter;
+
+                // Move the current character
+                CurrentCharacter.transform.position =
+                    closestDoorDown.transform.position;
+
+                // Move all followers to the door position
+                PlayerController playerController =
+                    CurrentCharacter.GetComponent<PlayerController>();
+                if (playerController != null)
                 {
-                    if (follower != null)
+                    float offsetZ = 0.01f; // Adjust the spacing between followers
+                    int index = 1; // Track follower index
+
+                    foreach (GameObject follower in playerController.followers)
                     {
-                        follower.transform.position =
-                            closestDoorDown.transform.position;
+                        if (follower != null)
+                        {
+                            Vector3 newPosition =
+                                closestDoorDown.transform.position;
+                            newPosition.z += index * offsetZ; // Spread followers along X-axis
+                            follower.transform.position = newPosition;
+                            index++; // Increment index for the next follower
+                        }
                     }
                 }
             }
@@ -707,61 +729,66 @@ public class PlayerController : MonoBehaviour
 
     public void UpdateFollowers()
     {
-        for (int i = 0; i < followers.Count; i++)
+        if (!UIManager.GetComponent<UIManager>().isSingle)
         {
-            GameObject follower = followers[i];
-            if (follower == null) continue;
-
-            // Get the Animator component of the follower
-            Animator followerAnimator = follower.GetComponent<Animator>();
-            if (followerAnimator == null) continue;
-
-            // Calculate a unique follow distance for each follower based on their index
-            float uniqueFollowDistance = followDistance + i * 1.5f; // Adjust the multiplier for spacing as needed
-
-            // Calculate the horizontal distance (x-axis only)
-            float distanceX =
-                Mathf.Abs(transform.position.x - follower.transform.position.x);
-
-            // Follow only if the x-axis distance is greater than the unique follow distance
-            if (distanceX > uniqueFollowDistance)
+            for (int i = 0; i < followers.Count; i++)
             {
-                // Calculate the new x position for the follower
-                float targetX =
+                GameObject follower = followers[i];
+                if (follower == null) continue;
+
+                // Get the Animator component of the follower
+                Animator followerAnimator = follower.GetComponent<Animator>();
+                if (followerAnimator == null) continue;
+
+                // Calculate a unique follow distance for each follower based on their index
+                float uniqueFollowDistance = followDistance + i * 1.5f; // Adjust the multiplier for spacing as needed
+
+                // Calculate the horizontal distance (x-axis only)
+                float distanceX =
                     Mathf
-                        .MoveTowards(follower.transform.position.x,
-                        transform.position.x,
-                        followSpeed * Time.deltaTime);
+                        .Abs(transform.position.x -
+                        follower.transform.position.x);
 
-                // Flip the follower to face the movement direction
-                if (
-                    targetX > follower.transform.position.x &&
-                    follower.transform.localScale.x > 0
-                )
+                // Follow only if the x-axis distance is greater than the unique follow distance
+                if (distanceX > uniqueFollowDistance)
                 {
-                    FlipFollower (follower);
+                    // Calculate the new x position for the follower
+                    float targetX =
+                        Mathf
+                            .MoveTowards(follower.transform.position.x,
+                            transform.position.x,
+                            followSpeed * Time.deltaTime);
+
+                    // Flip the follower to face the movement direction
+                    if (
+                        targetX > follower.transform.position.x &&
+                        follower.transform.localScale.x > 0
+                    )
+                    {
+                        FlipFollower (follower);
+                    }
+                    else if (
+                        targetX < follower.transform.position.x &&
+                        follower.transform.localScale.x < 0
+                    )
+                    {
+                        FlipFollower (follower);
+                    }
+
+                    // Update the follower's position, changing only the x-axis
+                    follower.transform.position =
+                        new Vector3(targetX,
+                            follower.transform.position.y,
+                            follower.transform.position.z);
+
+                    // Set the speed in the follower's Animator
+                    followerAnimator.SetFloat("speed", followSpeed);
                 }
-                else if (
-                    targetX < follower.transform.position.x &&
-                    follower.transform.localScale.x < 0
-                )
+                else
                 {
-                    FlipFollower (follower);
+                    // Stop animation when within unique follow distance
+                    followerAnimator.SetFloat("speed", 0);
                 }
-
-                // Update the follower's position, changing only the x-axis
-                follower.transform.position =
-                    new Vector3(targetX,
-                        follower.transform.position.y,
-                        follower.transform.position.z);
-
-                // Set the speed in the follower's Animator
-                followerAnimator.SetFloat("speed", followSpeed);
-            }
-            else
-            {
-                // Stop animation when within unique follow distance
-                followerAnimator.SetFloat("speed", 0);
             }
         }
     }
@@ -771,5 +798,11 @@ public class PlayerController : MonoBehaviour
         Vector3 scale = follower.transform.localScale;
         scale.x *= -1; // Flip the x-axis
         follower.transform.localScale = scale;
+    }
+
+    public void TakeDamage()
+    {
+        health -= rd.Next(10, 50);
+        UIManager.GetComponent<UIManager>().UIupdate();
     }
 }
