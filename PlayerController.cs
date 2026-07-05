@@ -159,7 +159,7 @@ public class PlayerController : MonoBehaviour
         UIManager = GameObject.FindWithTag("UIManager");
 
         //ignore collision on other characters
-        Physics2D.IgnoreLayerCollision (PlayerLayerIndex1, PlayerLayerIndex2);
+        Physics2D.IgnoreLayerCollision(PlayerLayerIndex1, PlayerLayerIndex2);
 
         foreach (GameObject follower in followers)
         {
@@ -351,7 +351,7 @@ public class PlayerController : MonoBehaviour
                 ref m_Velocity,
                 m_MovementSmoothing);
 
-        Flip (move);
+        Flip(move);
 
         // If the player should jump...
         if (m_Grounded && jump)
@@ -488,6 +488,8 @@ public class PlayerController : MonoBehaviour
     // go up method for door
     public void goUp(GameObject targetItem)
     {
+
+        UIManager.GetComponent<UIManager>().PlayPortalAnimation();
         // variables for goUp and goDown methods
         float distance = Mathf.Infinity;
 
@@ -582,6 +584,7 @@ public class PlayerController : MonoBehaviour
     // go down method for door
     public void goDown(GameObject targetItem)
     {
+        UIManager.GetComponent<UIManager>().PlayPortalAnimation();
         // variables for goUp and goDown methods
         float distance = Mathf.Infinity;
 
@@ -692,12 +695,12 @@ public class PlayerController : MonoBehaviour
     public void Add(Item item)
     {
         Item tmpItem = item;
-        Items.Add (tmpItem);
+        Items.Add(tmpItem);
     }
 
     public void Remove(Item item)
     {
-        Items.Remove (item);
+        Items.Remove(item);
     }
 
     public void Utilize(Item myitem)
@@ -810,14 +813,14 @@ public class PlayerController : MonoBehaviour
                         follower.transform.localScale.x > 0
                     )
                     {
-                        FlipFollower (follower);
+                        FlipFollower(follower);
                     }
                     else if (
                         targetX < follower.transform.position.x &&
                         follower.transform.localScale.x < 0
                     )
                     {
-                        FlipFollower (follower);
+                        FlipFollower(follower);
                     }
 
                     // Update the follower's position, changing only the x-axis

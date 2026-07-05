@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -35,11 +36,15 @@ public class ItemBehaviour : MonoBehaviour
 
     public float fadeDuration = 0.2f;
 
+    public Sprite TransitionEffect;
+
     private Coroutine fadeCoroutine;
 
     private Vector3 originalScale;
 
     private bool zoomingOut = true;
+
+
 
     [Header("Dialog section")]
     public Dialog ItemDialog;
@@ -113,13 +118,13 @@ public class ItemBehaviour : MonoBehaviour
     public void Add(Item item)
     {
         Item tmpItem = item;
-        Items.Add (tmpItem);
+        Items.Add(tmpItem);
     }
 
     public void Remove(Item item)
     {
         //remove the item in the storage
-        Items.Remove (item);
+        Items.Remove(item);
     }
 
     IEnumerator ZoomLoop()
@@ -222,7 +227,7 @@ public class ItemBehaviour : MonoBehaviour
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
                     Debug.Log("this is an entry");
-                    SceneManager.LoadScene (sceneIndex);
+                    SceneManager.LoadScene(sceneIndex);
                     break;
                 case ItemType.Portal:
                     if (objectToAppear != null)
@@ -377,7 +382,7 @@ public class ItemBehaviour : MonoBehaviour
                     Debug.Log("this is a bed");
                     break;
                 case ItemType.CheckPoint:
-                    SceneManager.LoadScene (CheckPointSceneIndex);
+                    SceneManager.LoadScene(CheckPointSceneIndex);
                     break;
                 case ItemType.CraftingTable:
                     //Play interact animation
@@ -449,7 +454,6 @@ public class ItemBehaviour : MonoBehaviour
             interactionUI.enabled = true;
             SetAlpha(0f); // set to transparent
             StartFade(1f); // fade in
-            StartCoroutine(ZoomLoop());
         }
     }
 
@@ -482,7 +486,7 @@ public class ItemBehaviour : MonoBehaviour
             time += Time.deltaTime;
             float newAlpha =
                 Mathf.Lerp(startAlpha, targetAlpha, time / fadeDuration);
-            SetAlpha (newAlpha);
+            SetAlpha(newAlpha);
             yield return null;
         }
 

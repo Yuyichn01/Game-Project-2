@@ -130,24 +130,24 @@ public class UIManager : MonoBehaviour
         InventoryManager = GameObject.FindWithTag("InventoryManager");
 
         //Button listeners
-        SaveButton.onClick.AddListener (TaskOnClickSaveButton);
-        LoadButton.onClick.AddListener (TaskOnClickLoadButton);
-        NewGameButton.onClick.AddListener (TaskOnClickNewGameButton);
-        InventoryButton.onClick.AddListener (TaskOnInventoryButton);
-        SwitchButton.onClick.AddListener (TaskOnSwitchButton);
-        PressToStartButton.onClick.AddListener (TaskOnPressToStartButton);
-        ControlModeButton.onClick.AddListener (TaskOnControlModeButton);
-        UtilizeButton.onClick.AddListener (TaskOnUtilizeButton);
-        StoreButton.onClick.AddListener (TaskOnStoreButton);
-        DiscardButton.onClick.AddListener (TaskOnDiscardButton);
-        PlaceButton.onClick.AddListener (TaskOnPlaceButton);
-        ReadyToCookButton.onClick.AddListener (TaskOnReadyToCookButton);
-        StartToCookButton.onClick.AddListener (TaskOnCookButton);
-        ReadyToCraftButton.onClick.AddListener (TaskOnReadyToCraftButton);
-        StartToCraftButton.onClick.AddListener (TaskOnCraftButton);
-        PhoneButton.onClick.AddListener (TaskOnPhoneButton);
-        MapButton.onClick.AddListener (TaskOnMapButton);
-        ToGoButton.onClick.AddListener (TaskOnToGoButton);
+        SaveButton.onClick.AddListener(TaskOnClickSaveButton);
+        LoadButton.onClick.AddListener(TaskOnClickLoadButton);
+        NewGameButton.onClick.AddListener(TaskOnClickNewGameButton);
+        InventoryButton.onClick.AddListener(TaskOnInventoryButton);
+        SwitchButton.onClick.AddListener(TaskOnSwitchButton);
+        PressToStartButton.onClick.AddListener(TaskOnPressToStartButton);
+        ControlModeButton.onClick.AddListener(TaskOnControlModeButton);
+        UtilizeButton.onClick.AddListener(TaskOnUtilizeButton);
+        StoreButton.onClick.AddListener(TaskOnStoreButton);
+        DiscardButton.onClick.AddListener(TaskOnDiscardButton);
+        PlaceButton.onClick.AddListener(TaskOnPlaceButton);
+        ReadyToCookButton.onClick.AddListener(TaskOnReadyToCookButton);
+        StartToCookButton.onClick.AddListener(TaskOnCookButton);
+        ReadyToCraftButton.onClick.AddListener(TaskOnReadyToCraftButton);
+        StartToCraftButton.onClick.AddListener(TaskOnCraftButton);
+        PhoneButton.onClick.AddListener(TaskOnPhoneButton);
+        MapButton.onClick.AddListener(TaskOnMapButton);
+        ToGoButton.onClick.AddListener(TaskOnToGoButton);
 
         //Initialize the day record information
         text = DayRecord.GetComponent<TextMeshProUGUI>();
@@ -698,13 +698,24 @@ public class UIManager : MonoBehaviour
         //teleport to the designated scene
         if (nextPlace != 0)
         {
-            SceneManager.LoadScene (nextPlace);
+            SceneManager.LoadScene(nextPlace);
         }
     }
 
     //Play Animation section: where all the method used to display animations
     public void PlayPortalAnimation()
     {
+        GameObject collidedItem =
+            CurrentCharacter.GetComponent<PlayerController>().item;
+
+        Sprite tempSprite = collidedItem
+            .GetComponent<ItemBehaviour>().TransitionEffect;
+
+        if (tempSprite != null)
+        {
+            PortalBackground.GetComponent<Image>().sprite = tempSprite;
+        }
+
         if (PortalBackground.GetComponent<Animator>().GetBool("Start"))
         {
             PortalBackground.GetComponent<Animator>().SetBool("Start", false);

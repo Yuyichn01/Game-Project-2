@@ -35,7 +35,7 @@ public class CameraController : MonoBehaviour
     // Variable to indicate if the camera is moving
     public bool isCameraMoving { get; private set; }
 
-    /*[Header("Tilt Settings")]
+    [Header("Tilt Settings")]
     public float tiltAmount = 10f; // Maximum tilt angle in degrees
 
     public float smoothSpeedTilt = 5f; // Smoothing factor
@@ -44,13 +44,13 @@ public class CameraController : MonoBehaviour
 
     private float targetTiltX = 0f;
 
-    private float targetTiltY = 0f;*/
+    private float targetTiltY = 0f;
     void Start()
     {
-        /*// Initialize the last position and rotation with the camera's current values
+        // Initialize the last position and rotation with the camera's current values
         lastPosition = transform.position;
         lastRotation = transform.rotation;
-        isCameraMoving = false;*/
+        isCameraMoving = false;
     }
 
     void FixedUpdate()
@@ -79,7 +79,7 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    /*void Update()
+    void Update()
     {
         // Check if the camera's position or rotation has changed
         if (
@@ -132,5 +132,4 @@ public class CameraController : MonoBehaviour
     {
         return isCameraMoving;
     }
-   */
 }
