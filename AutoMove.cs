@@ -31,7 +31,7 @@ public class AutoMove : MonoBehaviour
         transform.position = newPosition;
 
         // Check if the object has reached the target distance
-        if (Vector3.Distance(newPosition, startPosition) >= moveDistance)
+        if ((newPosition - startPosition).sqrMagnitude >= moveDistance * moveDistance)
         {
             // Reverse direction
             direction *= -1;

@@ -184,9 +184,12 @@ public class DialogManager : MonoBehaviour
         plotRequestFastForward = false;
         dialogText.text = "";
 
+        // 如果以 @ 开头，则作为本地化 key 解析
+        string displayContent = ResolveDialogText(content);
+
         if (TypingInterval <= 0f)
         {
-            dialogText.text = content;
+            dialogText.text = displayContent;
             plotIsTyping = false;
             yield break;
         }
@@ -196,13 +199,13 @@ public class DialogManager : MonoBehaviour
             // 如果在打字中点了按钮：直接快进到全文
             if (plotRequestFastForward)
             {
-                dialogText.text = content;
-                plotRequestFastForward = false; // 消耗快进请求
+                dialogText.text = displayContent;
+                plotRequestFastForward = false;
                 break;
             }
 
-            dialogText.text += content[idx];
-            yield return new WaitForSecondsRealtime(TypingInterval); // 不受 timeScale 影响
+            dialogText.text += displayContent[idx];
+            yield return new WaitForSecondsRealtime(TypingInterval);
         }
 
         plotIsTyping = false;
@@ -593,11 +596,22 @@ public class DialogManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 如果文本以 @ 开头，则将剩余部分作为本地化 key 解析；否则原样返回。
+    /// </summary>
+    private static string ResolveDialogText(string text)
+    {
+        if (!string.IsNullOrEmpty(text) && text.StartsWith("@"))
+            return LocalizationManager.Get(text.Substring(1));
+        return text;
+    }
+
     //display the sentence character by character
     IEnumerator TypeSentence(string sentence)
     {
+        string displayText = ResolveDialogText(sentence);
         dialogText.text = " ";
-        foreach (char letter in sentence.ToCharArray())
+        foreach (char letter in displayText.ToCharArray())
         {
             dialogText.text += letter;
             yield return new WaitForSeconds(TypingInterval);
@@ -662,6 +676,7 @@ public class DialogManager : MonoBehaviour
         transform.localPosition = targetPos;
         currentMoveCoroutine = null;
 
-        // 可以在这里触发移动完成事件
+        //设置速度为0
+         anim.SetFloat("speed", 0);
     }
 }

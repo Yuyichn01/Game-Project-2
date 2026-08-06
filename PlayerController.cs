@@ -14,7 +14,7 @@ attach this to the player instance
 
 set the player layer
 */
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, ISaveable
 {
     [Header("Value Section")]
     public float runSpeed;
@@ -134,6 +134,27 @@ public class PlayerController : MonoBehaviour
 
     [Header("Manager section")]
     private GameObject UIManager;
+    private UIManager uiManagerComp;
+
+    [Header("Click Indicator")]
+    [Tooltip("点击移动时在目标位置生成的箭头预制体（需要带 SpriteRenderer）。")]
+    public GameObject clickIndicatorPrefab;
+
+    [Tooltip("箭头上下浮动幅度。")]
+    public float indicatorFloatHeight = 0.3f;
+
+    [Tooltip("箭头浮动速度。")]
+    public float indicatorFloatSpeed = 2f;
+
+    [Tooltip("角色抵达后箭头渐隐时长（秒）。")]
+    public float indicatorFadeDuration = 1f;
+
+    private GameObject activeIndicator;
+    private Coroutine indicatorFloatCoroutine;
+    private Coroutine indicatorFadeCoroutine;
+
+    [Header("Save section")]
+    [SerializeField] private int characterIndex;
 
     [Header("Follower section")]
     public List<GameObject> followers; // List of other characters
@@ -149,6 +170,9 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         m_Rigidbody2D = GetComponent<Rigidbody2D>();
+
+        if (DataManager.Instance != null)
+            DataManager.Instance.Register(this);
     }
 
     public void Start()
@@ -157,33 +181,30 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         playerAnimator = GetComponent<Animator>();
         UIManager = GameObject.FindWithTag("UIManager");
+        uiManagerComp = UIManager?.GetComponent<UIManager>();
 
         //ignore collision on other characters
-        Physics2D.IgnoreLayerCollision (PlayerLayerIndex1, PlayerLayerIndex2);
+        Physics2D.IgnoreLayerCollision(PlayerLayerIndex1, PlayerLayerIndex2);
 
-        foreach (GameObject follower in followers)
-        {
-            if (follower != null)
-            {
-                bool isFollowerFacingRight =
-                    follower.transform.localScale.x > 0;
-            }
-        }
+        // Ensure no residual velocity from physics initialization causes unintended drift
+        // before the first FixedUpdate runs.
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
     }
 
     public void Update()
     {
-        if (InputState)
+        if (InputState && this.gameObject == UIManager.GetComponent<UIManager>().CurrentCharacter)
         {
             // Detect  input
-            horizontal = Input.GetAxisRaw("Horizontal");
-            vertical = Input.GetAxisRaw("Vertical");
+            horizontal = InputHelper.GetAxisRaw("Horizontal");
+            vertical = InputHelper.GetAxisRaw("Vertical");
             speed = Mathf.Abs(horizontal);
 
             // If there is input, cancel mouse movement
             if (Mathf.Abs(horizontal) > 0.01f || Mathf.Abs(vertical) > 0.01f)
             {
-                if (!UIManager.GetComponent<UIManager>().panelOpened)
+                if (!uiManagerComp.panelOpened)
                 {
                     isMoving = false; // Cancel mouse click movement
                     playerAnimator.SetBool("Can walk", true);
@@ -192,7 +213,7 @@ public class PlayerController : MonoBehaviour
 
             // Mouse click movement
             if (
-                Input.GetMouseButtonDown(0) &&
+                InputHelper.GetMouseButtonDown(0) &&
                 !UIManager.GetComponent<UIManager>().panelOpened
             )
             {
@@ -203,7 +224,7 @@ public class PlayerController : MonoBehaviour
                 }
 
                 //translate screen position to game scene position
-                Vector3 mouseScreenPos = Input.mousePosition;
+                Vector3 mouseScreenPos = InputHelper.mousePosition;
                 mouseScreenPos.z =
                     Mathf
                         .Abs(Camera.main.transform.position.z -
@@ -215,6 +236,9 @@ public class PlayerController : MonoBehaviour
                 targetPos =
                     new Vector3(worldPos.x, worldPos.y, transform.position.z);
                 isMoving = true;
+
+                // ── 生成点击指示箭头 ──
+                SpawnClickIndicator(targetPos);
 
                 //check if it is clicked on an interactive UI
                 RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.up);
@@ -241,8 +265,9 @@ public class PlayerController : MonoBehaviour
                     )
                     {
                         ib.itemBehaviour();
-                        rb.velocity = Vector2.zero;
+                        rb.linearVelocity = Vector2.zero;
                         isMoving = false;
+                        DestroyClickIndicator();
 
                         // Ensure idle animation
                         playerAnimator.SetFloat("speed", 0f);
@@ -252,7 +277,7 @@ public class PlayerController : MonoBehaviour
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(1))
+            if (InputHelper.GetKeyDown(KeyCode.Q) || InputHelper.GetMouseButtonDown(1))
             {
                 attack();
             }
@@ -288,8 +313,8 @@ public class PlayerController : MonoBehaviour
 
             // Mouse click movement
             Vector3 direction = (targetPos - transform.position).normalized;
-            rb.velocity =
-                new Vector2(direction.x * MouseRunSpeed, rb.velocity.y);
+            rb.linearVelocity =
+                new Vector2(direction.x * MouseRunSpeed, rb.linearVelocity.y);
 
             // Flip character based on direction
             // Flip character based on movement direction
@@ -315,8 +340,11 @@ public class PlayerController : MonoBehaviour
             //Determine how close to stop when reach target(accuracy)
             if (Mathf.Abs(transform.position.x - targetPos.x) < 1f)
             {
-                rb.velocity = Vector2.zero;
+                rb.linearVelocity = Vector2.zero;
                 isMoving = false;
+
+                // ── 开始渐隐指示箭头 ──
+                FadeOutClickIndicator();
 
                 // Ensure idle animation
                 playerAnimator.SetFloat("speed", 0f);
@@ -325,9 +353,12 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // No input → idle animation
-            rb.velocity = new Vector2(0, rb.velocity.y);
-            playerAnimator.SetFloat("speed", 0f);
+            // No input → idle
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            // Only set idle animation for CurrentCharacter;
+            // followers' animation is driven by UpdateFollowers()
+            if (this.gameObject == UIManager.GetComponent<UIManager>().CurrentCharacter)
+                playerAnimator.SetFloat("speed", 0f);
         }
 
         // Check climbing and other mechanics
@@ -341,17 +372,17 @@ public class PlayerController : MonoBehaviour
         // Only control the player if grounded or airControl is turned on
         // Move the character by finding the target velocity
         Vector3 targetVelocity =
-            new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
+            new Vector2(move * 10f, m_Rigidbody2D.linearVelocity.y);
 
         // And then smoothing it out and applying it to the character
-        m_Rigidbody2D.velocity =
+        m_Rigidbody2D.linearVelocity =
             Vector3
-                .SmoothDamp(m_Rigidbody2D.velocity,
+                .SmoothDamp(m_Rigidbody2D.linearVelocity,
                 targetVelocity,
                 ref m_Velocity,
                 m_MovementSmoothing);
 
-        Flip (move);
+        Flip(move);
 
         // If the player should jump...
         if (m_Grounded && jump)
@@ -413,7 +444,7 @@ public class PlayerController : MonoBehaviour
         Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
         if (rb != null)
         {
-            rb.velocity = launchDirection * launchForce;
+            rb.linearVelocity = launchDirection * launchForce;
         }
         else
         {
@@ -466,17 +497,17 @@ public class PlayerController : MonoBehaviour
             item = itemCollider.gameObject;
 
             //if key E is pressed
-            if (Input.GetKeyDown(KeyCode.E))
+            if (InputHelper.GetKeyDown(KeyCode.E))
             {
                 item.GetComponent<ItemBehaviour>().itemBehaviour();
             }
 
             //if key W is pressed
-            if (Input.GetKeyDown(KeyCode.W) && item.tag == "door") goUp(item);
+            if (InputHelper.GetKeyDown(KeyCode.W) && item.CompareTag("door")) goUp(item);
 
             //if key S is pressed
-            if (Input.GetKeyDown(KeyCode.S) && item.tag == "door") goDown(item);
-            if (item.tag == "ladder" && Mathf.Abs(vertical) > 0f)
+            if (InputHelper.GetKeyDown(KeyCode.S) && item.CompareTag("door")) goDown(item);
+            if (item.CompareTag("ladder") && Mathf.Abs(vertical) > 0f)
                 isClimbing = true;
         }
         else
@@ -488,6 +519,8 @@ public class PlayerController : MonoBehaviour
     // go up method for door
     public void goUp(GameObject targetItem)
     {
+
+        UIManager.GetComponent<UIManager>().PlayPortalAnimation();
         // variables for goUp and goDown methods
         float distance = Mathf.Infinity;
 
@@ -582,6 +615,7 @@ public class PlayerController : MonoBehaviour
     // go down method for door
     public void goDown(GameObject targetItem)
     {
+        UIManager.GetComponent<UIManager>().PlayPortalAnimation();
         // variables for goUp and goDown methods
         float distance = Mathf.Infinity;
 
@@ -679,7 +713,7 @@ public class PlayerController : MonoBehaviour
         if (isClimbing)
         {
             rb.gravityScale = 0f;
-            rb.velocity = new Vector2(rb.velocity.x, vertical * climbSpeed);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, vertical * climbSpeed);
             GetComponent<Collider2D>().enabled = false;
         }
         else
@@ -692,12 +726,12 @@ public class PlayerController : MonoBehaviour
     public void Add(Item item)
     {
         Item tmpItem = item;
-        Items.Add (tmpItem);
+        Items.Add(tmpItem);
     }
 
     public void Remove(Item item)
     {
-        Items.Remove (item);
+        Items.Remove(item);
     }
 
     public void Utilize(Item myitem)
@@ -774,6 +808,9 @@ public class PlayerController : MonoBehaviour
 
     public void UpdateFollowers()
     {
+        if (!InputState) return; // Skip during plot/dialogue when input is disabled
+        // Only the current character pulls followers; followers must not pull back
+        if (this.gameObject != UIManager.GetComponent<UIManager>().CurrentCharacter) return;
         if (!UIManager.GetComponent<UIManager>().isSingle)
         {
             for (int i = 0; i < followers.Count; i++)
@@ -810,14 +847,14 @@ public class PlayerController : MonoBehaviour
                         follower.transform.localScale.x > 0
                     )
                     {
-                        FlipFollower (follower);
+                        FlipFollower(follower);
                     }
                     else if (
                         targetX < follower.transform.position.x &&
                         follower.transform.localScale.x < 0
                     )
                     {
-                        FlipFollower (follower);
+                        FlipFollower(follower);
                     }
 
                     // Update the follower's position, changing only the x-axis
@@ -859,5 +896,174 @@ public class PlayerController : MonoBehaviour
     public void enableInput()
     {
         InputState = true;
+    }
+
+    private void OnDestroy()
+    {
+        DestroyClickIndicator();
+        if (DataManager.Instance != null)
+            DataManager.Instance.Unregister(this);
+    }
+
+    public void Save(GameData data)
+    {
+        if (data?.characters == null) return;
+
+        int index = Mathf.Clamp(characterIndex, 0, data.characters.Length - 1);
+
+        CharacterSaveData charData = data.characters[index];
+        Transform t = transform;
+        charData.position = new float[] { t.position.x, t.position.y, t.position.z };
+        charData.health = health;
+        charData.starvation = Starvation;
+        charData.fatigue = Fatigue;
+
+        // 序列化角色背包物品名称
+        if (Items != null && Items.Count > 0)
+        {
+            charData.inventoryItems = new string[Items.Count];
+            for (int i = 0; i < Items.Count; i++)
+            {
+                charData.inventoryItems[i] = Items[i]?.ItemName ?? string.Empty;
+            }
+        }
+        else
+        {
+            charData.inventoryItems = new string[0];
+        }
+
+        // struct 是值类型，需要写回数组
+        data.characters[index] = charData;
+    }
+
+    public void Load(GameData data)
+    {
+        if (data?.characters == null) return;
+
+        int index = Mathf.Clamp(characterIndex, 0, data.characters.Length - 1);
+        CharacterSaveData charData = data.characters[index];
+        if (charData.position == null || charData.position.Length < 3) return;
+
+        // 恢复位置
+        transform.position = new Vector3(
+            charData.position[0],
+            charData.position[1],
+            charData.position[2]);
+
+        // 恢复属性
+        health = charData.health;
+        Starvation = charData.starvation;
+        Fatigue = charData.fatigue;
+
+        // 恢复角色背包物品
+        Items.Clear();
+        if (charData.inventoryItems != null && DataManager.Instance?.ItemDatabase != null)
+        {
+            foreach (string itemName in charData.inventoryItems)
+            {
+                if (string.IsNullOrEmpty(itemName)) continue;
+                Item item = DataManager.Instance.ItemDatabase.GetItemByName(itemName);
+                if (item != null)
+                {
+                    Items.Add(item);
+                }
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // 点击指示箭头
+    // ═══════════════════════════════════════════
+
+    private void SpawnClickIndicator(Vector3 position)
+    {
+        if (clickIndicatorPrefab == null) return;
+
+        DestroyClickIndicator();
+
+        // 指示器始终与角色保持同平面
+        position.y = transform.position.y;
+
+        activeIndicator = Instantiate(clickIndicatorPrefab, position, Quaternion.identity);
+        indicatorFloatCoroutine = StartCoroutine(FloatIndicator());
+    }
+
+    private void DestroyClickIndicator()
+    {
+        if (indicatorFloatCoroutine != null)
+        {
+            StopCoroutine(indicatorFloatCoroutine);
+            indicatorFloatCoroutine = null;
+        }
+        if (indicatorFadeCoroutine != null)
+        {
+            StopCoroutine(indicatorFadeCoroutine);
+            indicatorFadeCoroutine = null;
+        }
+        if (activeIndicator != null)
+        {
+            Destroy(activeIndicator);
+            activeIndicator = null;
+        }
+    }
+
+    private void FadeOutClickIndicator()
+    {
+        if (activeIndicator == null) return;
+
+        // 停止浮动
+        if (indicatorFloatCoroutine != null)
+        {
+            StopCoroutine(indicatorFloatCoroutine);
+            indicatorFloatCoroutine = null;
+        }
+        // 停止旧的渐隐（防止重复）
+        if (indicatorFadeCoroutine != null)
+        {
+            StopCoroutine(indicatorFadeCoroutine);
+            indicatorFadeCoroutine = null;
+        }
+
+        indicatorFadeCoroutine = StartCoroutine(FadeOutIndicatorRoutine());
+    }
+
+    private IEnumerator FloatIndicator()
+    {
+        if (activeIndicator == null) yield break;
+
+        float baseY = activeIndicator.transform.position.y;
+        float elapsed = 0f;
+
+        while (activeIndicator != null)
+        {
+            float offset = Mathf.Sin(elapsed * indicatorFloatSpeed) * indicatorFloatHeight;
+            Vector3 pos = activeIndicator.transform.position;
+            pos.y = baseY + offset;
+            activeIndicator.transform.position = pos;
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+    }
+
+    private IEnumerator FadeOutIndicatorRoutine()
+    {
+        var sr = activeIndicator?.GetComponent<SpriteRenderer>();
+        if (sr == null) yield break;
+
+        float elapsed = 0f;
+        Color color = sr.color;
+        float startAlpha = color.a;
+
+        while (elapsed < indicatorFadeDuration && activeIndicator != null && sr != null)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / indicatorFadeDuration;
+            color.a = Mathf.Lerp(startAlpha, 0f, t);
+            sr.color = color;
+            yield return null;
+        }
+
+        DestroyClickIndicator();
     }
 }

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /*this script generate building blocks and items
@@ -14,6 +13,7 @@ public class MapGenerator3 : MonoBehaviour
 
     //spawndistance must greater than spawnnumber
     public int spawnDistance = 300;
+    private float spawnDistanceSqr;
 
     //variables for backgrounds
     [Header("Background section")]
@@ -108,6 +108,8 @@ public class MapGenerator3 : MonoBehaviour
 
     public void Awake()
     {
+        spawnDistanceSqr = spawnDistance * spawnDistance;
+
         // find endpositions for backgrounds
         endPosition1 = startBackground1.Find("EndPosition").position;
         endPosition2 = startBackground2.Find("EndPosition").position;
@@ -122,8 +124,8 @@ public class MapGenerator3 : MonoBehaviour
     public void generateBG1()
     {
         if (
-            Vector3.Distance(playerPosition.position, endPosition1) <
-            spawnDistance
+            (playerPosition.position - endPosition1).sqrMagnitude <
+            spawnDistanceSqr
         )
         {
             Transform chosenLevelPart =
@@ -138,8 +140,8 @@ public class MapGenerator3 : MonoBehaviour
     public void generateBG2()
     {
         if (
-            Vector3.Distance(playerPosition.position, endPosition2) <
-            spawnDistance
+            (playerPosition.position - endPosition2).sqrMagnitude <
+            spawnDistanceSqr
         )
         {
             Transform chosenLevelPart =
@@ -154,8 +156,8 @@ public class MapGenerator3 : MonoBehaviour
     public void generateBG3()
     {
         if (
-            Vector3.Distance(playerPosition.position, endPosition3) <
-            spawnDistance
+            (playerPosition.position - endPosition3).sqrMagnitude <
+            spawnDistanceSqr
         )
         {
             Transform chosenLevelPart =
@@ -203,8 +205,8 @@ public class MapGenerator3 : MonoBehaviour
         }
 
         if (
-            Vector3.Distance(playerPosition.position, endPosition4) <
-            spawnDistance
+            (playerPosition.position - endPosition4).sqrMagnitude <
+            spawnDistanceSqr
         )
         {
             // generate the base ground

@@ -60,6 +60,7 @@ public class MapGeneratorTest : MonoBehaviour
             spawn3();
         }
 
+        transform.SetParent(null);
         DontDestroyOnLoad(transform.gameObject);
     }
 

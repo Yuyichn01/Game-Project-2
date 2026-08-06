@@ -35,7 +35,7 @@ public class CameraController : MonoBehaviour
     // Variable to indicate if the camera is moving
     public bool isCameraMoving { get; private set; }
 
-    /*[Header("Tilt Settings")]
+    [Header("Tilt Settings")]
     public float tiltAmount = 10f; // Maximum tilt angle in degrees
 
     public float smoothSpeedTilt = 5f; // Smoothing factor
@@ -44,13 +44,13 @@ public class CameraController : MonoBehaviour
 
     private float targetTiltX = 0f;
 
-    private float targetTiltY = 0f;*/
+    private float targetTiltY = 0f;
     void Start()
     {
-        /*// Initialize the last position and rotation with the camera's current values
+        // Initialize the last position and rotation with the camera's current values
         lastPosition = transform.position;
         lastRotation = transform.rotation;
-        isCameraMoving = false;*/
+        isCameraMoving = false;
     }
 
     void FixedUpdate()
@@ -79,7 +79,7 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    /*void Update()
+    void Update()
     {
         // Check if the camera's position or rotation has changed
         if (
@@ -97,25 +97,35 @@ public class CameraController : MonoBehaviour
         {
             isCameraMoving = false;
         }
-        Vector3 mousePosition = Input.mousePosition;
+        Vector3 mousePosition = InputHelper.mousePosition;
         float screenWidth = Screen.width;
         float screenHeight = Screen.height;
 
-        // Calculate horizontal tilt (opposite of previous logic)
-        if (mousePosition.x < borderThreshold)
-            targetTiltY = -tiltAmount; // Look left
-        else if (mousePosition.x > screenWidth - borderThreshold)
-            targetTiltY = tiltAmount; // Look right
+        // Guard: skip tilt when mouse is not available (e.g. Mouse.current is null -
+        // InputHelper returns Vector3.zero, which would be misread as bottom-left edge)
+        if (mousePosition == Vector3.zero)
+        {
+            targetTiltY = 0f;
+            targetTiltX = 0f;
+        }
         else
-            targetTiltY = 0f; // Reset
+        {
+            // Calculate horizontal tilt (opposite of previous logic)
+            if (mousePosition.x < borderThreshold)
+                targetTiltY = -tiltAmount; // Look left
+            else if (mousePosition.x > screenWidth - borderThreshold)
+                targetTiltY = tiltAmount; // Look right
+            else
+                targetTiltY = 0f; // Reset
 
-        // Calculate vertical tilt (opposite of previous logic)
-        if (mousePosition.y < borderThreshold)
-            targetTiltX = tiltAmount; // Look down
-        else if (mousePosition.y > screenHeight - borderThreshold)
-            targetTiltX = -tiltAmount; // Look up
-        else
-            targetTiltX = 0f; // Reset
+            // Calculate vertical tilt (opposite of previous logic)
+            if (mousePosition.y < borderThreshold)
+                targetTiltX = tiltAmount; // Look down
+            else if (mousePosition.y > screenHeight - borderThreshold)
+                targetTiltX = -tiltAmount; // Look up
+            else
+                targetTiltX = 0f; // Reset
+        }
 
         // Smoothly rotate the camera
         Quaternion targetRotation =
@@ -127,10 +137,9 @@ public class CameraController : MonoBehaviour
                 Time.deltaTime * smoothSpeedTilt);
     }
 
-    // Optional: Method to get the current movement state
+    
     public bool IsCameraMoving()
     {
         return isCameraMoving;
     }
-   */
 }

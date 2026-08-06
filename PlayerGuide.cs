@@ -7,6 +7,8 @@ public class PlayerGuide : MonoBehaviour
 {
     public TextMeshProUGUI uiText;
 
+    // 使用本地化 key 而非硬编码文字
+    [Tooltip("key 列表: guide_move, guide_interact, guide_jump")]
     public List<string> instructions;
 
     private string currentInstruction;
@@ -31,14 +33,14 @@ public class PlayerGuide : MonoBehaviour
         // Check for player input (A or D keys)
         if (
             !isADKeyPressed &&
-            (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.D))
+            (InputHelper.GetKeyDown(KeyCode.A) || InputHelper.GetKeyDown(KeyCode.D))
         )
         {
             isADKeyPressed = true;
             currentInstruction = instructions[1];
             DisplayInstruction();
         } // Check for player input (E key)
-        else if (isADKeyPressed && !isEKeyPressed && Input.GetKeyDown(KeyCode.E)
+        else if (isADKeyPressed && !isEKeyPressed && InputHelper.GetKeyDown(KeyCode.E)
         )
         {
             isEKeyPressed = true;
@@ -49,10 +51,10 @@ public class PlayerGuide : MonoBehaviour
             isADKeyPressed &&
             isEKeyPressed &&
             !isUpDownKeyPressed &&
-            Input.GetKeyDown(KeyCode.W) ||
-            Input.GetKeyDown(KeyCode.S) ||
-            Input.GetKeyDown(KeyCode.UpArrow) ||
-            Input.GetKeyDown(KeyCode.DownArrow)
+            InputHelper.GetKeyDown(KeyCode.W) ||
+            InputHelper.GetKeyDown(KeyCode.S) ||
+            InputHelper.GetKeyDown(KeyCode.UpArrow) ||
+            InputHelper.GetKeyDown(KeyCode.DownArrow)
         )
         {
             ClearInstruction();
@@ -67,8 +69,9 @@ public class PlayerGuide : MonoBehaviour
             {
                 StopCoroutine (fadeCoroutine);
             }
+            string localizedText = LocalizationManager.Get(currentInstruction);
             fadeCoroutine =
-                StartCoroutine(FadeTextToFullAlpha(1f, currentInstruction));
+                StartCoroutine(FadeTextToFullAlpha(1f, localizedText));
         }
         else
         {

@@ -44,22 +44,22 @@ public class WhetherManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        if (InputHelper.GetKeyDown(KeyCode.Alpha1))
         {
             gradientType = GradientType.None;
             SetGradientColor();
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        if (InputHelper.GetKeyDown(KeyCode.Alpha2))
         {
             gradientType = GradientType.Vertical;
             SetGradientColor();
         }
-        if (Input.GetKeyDown(KeyCode.Alpha3))
+        if (InputHelper.GetKeyDown(KeyCode.Alpha3))
         {
             gradientType = GradientType.Horizontal;
             SetGradientColor();
         }
-        if (Input.GetKeyDown(KeyCode.Alpha4))
+        if (InputHelper.GetKeyDown(KeyCode.Alpha4))
         {
             gradientType = GradientType.Diagonal;
             SetGradientColor();

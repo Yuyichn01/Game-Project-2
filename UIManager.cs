@@ -117,6 +117,10 @@ public class UIManager : MonoBehaviour
     [Header("Dialog section")]
     public bool dialogPannelOpened = false;
 
+    [Header("Save/Load section")]
+    [SerializeField] private SaveLoadPanel saveLoadPanel;
+    [SerializeField] private ConfirmDialog confirmDialog;
+
     [Header("Crafting table section")]
     public Animator CraftingTableAnimator;
 
@@ -130,28 +134,28 @@ public class UIManager : MonoBehaviour
         InventoryManager = GameObject.FindWithTag("InventoryManager");
 
         //Button listeners
-        SaveButton.onClick.AddListener (TaskOnClickSaveButton);
-        LoadButton.onClick.AddListener (TaskOnClickLoadButton);
-        NewGameButton.onClick.AddListener (TaskOnClickNewGameButton);
-        InventoryButton.onClick.AddListener (TaskOnInventoryButton);
-        SwitchButton.onClick.AddListener (TaskOnSwitchButton);
-        PressToStartButton.onClick.AddListener (TaskOnPressToStartButton);
-        ControlModeButton.onClick.AddListener (TaskOnControlModeButton);
-        UtilizeButton.onClick.AddListener (TaskOnUtilizeButton);
-        StoreButton.onClick.AddListener (TaskOnStoreButton);
-        DiscardButton.onClick.AddListener (TaskOnDiscardButton);
-        PlaceButton.onClick.AddListener (TaskOnPlaceButton);
-        ReadyToCookButton.onClick.AddListener (TaskOnReadyToCookButton);
-        StartToCookButton.onClick.AddListener (TaskOnCookButton);
-        ReadyToCraftButton.onClick.AddListener (TaskOnReadyToCraftButton);
-        StartToCraftButton.onClick.AddListener (TaskOnCraftButton);
-        PhoneButton.onClick.AddListener (TaskOnPhoneButton);
-        MapButton.onClick.AddListener (TaskOnMapButton);
-        ToGoButton.onClick.AddListener (TaskOnToGoButton);
+        SaveButton.onClick.AddListener(TaskOnClickSaveButton);
+        LoadButton.onClick.AddListener(TaskOnClickLoadButton);
+        NewGameButton.onClick.AddListener(TaskOnClickNewGameButton);
+        InventoryButton.onClick.AddListener(TaskOnInventoryButton);
+        SwitchButton.onClick.AddListener(TaskOnSwitchButton);
+        PressToStartButton.onClick.AddListener(TaskOnPressToStartButton);
+        ControlModeButton.onClick.AddListener(TaskOnControlModeButton);
+        UtilizeButton.onClick.AddListener(TaskOnUtilizeButton);
+        StoreButton.onClick.AddListener(TaskOnStoreButton);
+        DiscardButton.onClick.AddListener(TaskOnDiscardButton);
+        PlaceButton.onClick.AddListener(TaskOnPlaceButton);
+        ReadyToCookButton.onClick.AddListener(TaskOnReadyToCookButton);
+        StartToCookButton.onClick.AddListener(TaskOnCookButton);
+        ReadyToCraftButton.onClick.AddListener(TaskOnReadyToCraftButton);
+        StartToCraftButton.onClick.AddListener(TaskOnCraftButton);
+        PhoneButton.onClick.AddListener(TaskOnPhoneButton);
+        MapButton.onClick.AddListener(TaskOnMapButton);
+        ToGoButton.onClick.AddListener(TaskOnToGoButton);
 
         //Initialize the day record information
         text = DayRecord.GetComponent<TextMeshProUGUI>();
-        text.SetText("DAY" + DayIndex);
+        text.SetText(LocalizationManager.Format("day_prefix", DayIndex));
 
         //Initialize to the first character
         CurrentCharacter = Characters[0];
@@ -166,12 +170,18 @@ public class UIManager : MonoBehaviour
     //Buttons section: where all the button control methods are written
     public void TaskOnClickSaveButton()
     {
-        Debug.Log("Saving game data");
+        closeAllPannels();
+        if (saveLoadPanel != null)
+            saveLoadPanel.Show(SaveLoadMode.Save);
+        PlayerFreezeState();
     }
 
     public void TaskOnClickLoadButton()
     {
-        Debug.Log("Loading game data");
+        closeAllPannels();
+        if (saveLoadPanel != null)
+            saveLoadPanel.Show(SaveLoadMode.Load);
+        PlayerFreezeState();
     }
 
     public void TaskOnClickNewGameButton()
@@ -698,13 +708,24 @@ public class UIManager : MonoBehaviour
         //teleport to the designated scene
         if (nextPlace != 0)
         {
-            SceneManager.LoadScene (nextPlace);
+            SceneManager.LoadScene(nextPlace);
         }
     }
 
     //Play Animation section: where all the method used to display animations
     public void PlayPortalAnimation()
     {
+        GameObject collidedItem =
+            CurrentCharacter.GetComponent<PlayerController>().item;
+
+        Sprite tempSprite = collidedItem
+            .GetComponent<ItemBehaviour>().TransitionEffect;
+
+        if (tempSprite != null)
+        {
+            PortalBackground.GetComponent<Image>().sprite = tempSprite;
+        }
+
         if (PortalBackground.GetComponent<Animator>().GetBool("Start"))
         {
             PortalBackground.GetComponent<Animator>().SetBool("Start", false);
@@ -757,7 +778,10 @@ public class UIManager : MonoBehaviour
     {
         DayIndex += 1;
 
-        DayRecord.text = ("DAY" + DayIndex);
+        DayRecord.text = LocalizationManager.Format("day_prefix", DayIndex);
+
+        // 持久化保存天数
+        DataManager.Instance?.SaveDayIndex(DayIndex);
     }
 
     public void displayStoragePannel()
@@ -815,6 +839,10 @@ public class UIManager : MonoBehaviour
 
         //close the dialog pannel UI
         DialogManager.GetComponent<DialogManager>().EndDialog();
+
+        //close the save/load panel
+        if (saveLoadPanel != null && saveLoadPanel.IsOpen)
+            saveLoadPanel.Hide();
 
         Debug.Log("All pannels are closed");
     }
@@ -887,7 +915,9 @@ public class UIManager : MonoBehaviour
             PhoneOpened ||
             CraftingTableOpened ||
             MapOpened ||
-            dialogPannelOpened
+            dialogPannelOpened ||
+            (saveLoadPanel != null && saveLoadPanel.IsOpen) ||
+            (confirmDialog != null && confirmDialog.IsOpen)
         )
         {
             CurrentCharacter.GetComponent<PlayerController>().FreezeCharacter();

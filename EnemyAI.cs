@@ -20,6 +20,8 @@ public class EnemyAI : MonoBehaviour
 
     private int currentHealth;
 
+    public int CurrentHealth { get { return currentHealth; } set { currentHealth = value; } }
+
     [Header("Enemy UI Section")]
     public Sprite EnemyDialogSprite;
 

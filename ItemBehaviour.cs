@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 public class ItemBehaviour : MonoBehaviour
 {
@@ -35,11 +37,30 @@ public class ItemBehaviour : MonoBehaviour
 
     public float fadeDuration = 0.2f;
 
+    public Sprite TransitionEffect;
+
+    [Header("Interaction UI Shake (抽帧旋转摇晃)")]
+    [Tooltip("是否启用绕轴旋转抽帧摇晃")]
+    public bool enableShake = true;
+
+    [Tooltip("旋转幅度（角度）")]
+    [Range(1f, 45f)]
+    public float shakeAmplitude = 16.5f;
+
+    [Tooltip("抽帧间隔（秒），越小晃动越密集")]
+    [Range(0.02f, 0.3f)]
+    public float shakeFrameInterval = 0.086f;
+
     private Coroutine fadeCoroutine;
 
     private Vector3 originalScale;
 
     private bool zoomingOut = true;
+
+    private bool _isShaking;
+    private float _shakeTimer;
+
+
 
     [Header("Dialog section")]
     public Dialog ItemDialog;
@@ -113,13 +134,13 @@ public class ItemBehaviour : MonoBehaviour
     public void Add(Item item)
     {
         Item tmpItem = item;
-        Items.Add (tmpItem);
+        Items.Add(tmpItem);
     }
 
     public void Remove(Item item)
     {
         //remove the item in the storage
-        Items.Remove (item);
+        Items.Remove(item);
     }
 
     IEnumerator ZoomLoop()
@@ -222,7 +243,7 @@ public class ItemBehaviour : MonoBehaviour
                         .GetComponent<Animator>()
                         .SetTrigger("Interact");
                     Debug.Log("this is an entry");
-                    SceneManager.LoadScene (sceneIndex);
+                    SceneManager.LoadScene(sceneIndex);
                     break;
                 case ItemType.Portal:
                     if (objectToAppear != null)
@@ -377,7 +398,7 @@ public class ItemBehaviour : MonoBehaviour
                     Debug.Log("this is a bed");
                     break;
                 case ItemType.CheckPoint:
-                    SceneManager.LoadScene (CheckPointSceneIndex);
+                    SceneManager.LoadScene(CheckPointSceneIndex);
                     break;
                 case ItemType.CraftingTable:
                     //Play interact animation
@@ -449,7 +470,7 @@ public class ItemBehaviour : MonoBehaviour
             interactionUI.enabled = true;
             SetAlpha(0f); // set to transparent
             StartFade(1f); // fade in
-            StartCoroutine(ZoomLoop());
+            StartShake();
         }
     }
 
@@ -462,6 +483,7 @@ public class ItemBehaviour : MonoBehaviour
         )
         {
             interactionUI.enabled = false;
+            StopShake();
         }
     }
 
@@ -482,10 +504,41 @@ public class ItemBehaviour : MonoBehaviour
             time += Time.deltaTime;
             float newAlpha =
                 Mathf.Lerp(startAlpha, targetAlpha, time / fadeDuration);
-            SetAlpha (newAlpha);
+            SetAlpha(newAlpha);
             yield return null;
         }
 
         fadeCoroutine = null;
+    }
+
+    // ============================================================
+    //  绕轴旋转抽帧摇晃
+    // ============================================================
+
+    private void Update()
+    {
+        if (!_isShaking || interactionUI == null) return;
+
+        _shakeTimer -= Time.deltaTime;
+        if (_shakeTimer <= 0f)
+        {
+            _shakeTimer = shakeFrameInterval;
+            interactionUI.transform.localRotation =
+                Quaternion.Euler(0f, 0f, Random.Range(-shakeAmplitude, shakeAmplitude));
+        }
+    }
+
+    private void StartShake()
+    {
+        if (!enableShake || interactionUI == null) return;
+        _isShaking = true;
+        _shakeTimer = 0f; // 立即触发第一帧旋转
+    }
+
+    private void StopShake()
+    {
+        _isShaking = false;
+        if (interactionUI != null)
+            interactionUI.transform.localRotation = Quaternion.identity;
     }
 }

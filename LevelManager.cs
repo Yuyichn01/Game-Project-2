@@ -11,13 +11,4 @@ public class LevelManager : MonoBehaviour
     //else if day index == day 2
     //set level2 visible
     //change character position
-    // Start is called before the first frame update
-    void Start()
-    {
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-    }
 }
